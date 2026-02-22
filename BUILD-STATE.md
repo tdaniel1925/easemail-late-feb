@@ -26,7 +26,7 @@
 | 2.7 | Token Refresh Job | ✅ | ✅ PASSED | 2026-02-22 |
 | CP2 | **MANUAL CHECKPOINT 2** | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.1 | Folder Sync | ✅ | ✅ PASSED | 2026-02-22 |
-| 3.2 | Message Delta Sync | ⬜ | ⬜ | |
+| 3.2 | Message Delta Sync | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.3 | Sync Orchestrator | ⬜ | ⬜ | |
 | 3.4 | Webhook Setup & Handler | ⬜ | ⬜ | |
 | 3.5 | Webhook Renewal Job | ⬜ | ⬜ | |
