@@ -1,0 +1,23 @@
+{
+  "name": "easemail-pocs",
+  "version": "1.0.0",
+  "description": "Proof-of-concept tests for EaseMail v3 integrations",
+  "type": "module",
+  "scripts": {
+    "poc1": "node poc1-token-refresh.js",
+    "poc2": "node poc2-delta-sync.js",
+    "poc3": "node poc3-webhooks.js",
+    "poc3:server": "node poc3-webhook-server.js"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.2",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
+    "express": "^4.21.2",
+    "uuid": "^11.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
+  }
+}

@@ -1,0 +1,123 @@
+# BUILD-STATE.md — EaseMail v3.0
+
+## Current Status: STEP 1.1 (NOT STARTED)
+
+| Step | Name | Status | Test Result | Date |
+|------|------|--------|-------------|------|
+| **PHASE 0** | **RISK MITIGATION POCs** | ⬜ | ⬜ | |
+| 0.1 | POC: Token Refresh Reliability | ⬜ | ⬜ | |
+| 0.2 | POC: Delta Sync Performance | ⬜ | ⬜ | |
+| 0.3 | POC: Webhook Reliability | ⬜ | ⬜ | |
+| **AGENT 1** | **FOUNDATION** | | | |
+| 1.1 | Project Scaffold | ⬜ | ⬜ | |
+| 1.2 | Database Migration | ⬜ | ⬜ | |
+| 1.3 | Environment Config | ⬜ | ⬜ | |
+| 1.4 | Supabase Client Setup | ⬜ | ⬜ | |
+| 1.5 | Zustand Store Setup | ⬜ | ⬜ | |
+| 1.6 | Background Job Infrastructure | ⬜ | ⬜ | |
+| CP1 | **MANUAL CHECKPOINT 1** | ⬜ | ⬜ | |
+| 2.1 | NextAuth Microsoft Provider | ⬜ | ⬜ | |
+| 2.2 | Token Storage Service | ⬜ | ⬜ | |
+| 2.3 | Graph Client Factory | ⬜ | ⬜ | |
+| 2.4 | Connect Account Flow | ⬜ | ⬜ | |
+| 2.5 | Disconnect Account Flow | ⬜ | ⬜ | |
+| 2.6 | Reauth Flow | ⬜ | ⬜ | |
+| 2.7 | Token Refresh Job | ⬜ | ⬜ | |
+| CP2 | **MANUAL CHECKPOINT 2** | ⬜ | ⬜ | |
+| 3.1 | Folder Sync | ⬜ | ⬜ | |
+| 3.2 | Message Delta Sync | ⬜ | ⬜ | |
+| 3.3 | Sync Orchestrator | ⬜ | ⬜ | |
+| 3.4 | Webhook Setup & Handler | ⬜ | ⬜ | |
+| 3.5 | Webhook Renewal Job | ⬜ | ⬜ | |
+| 3.6 | Attachment Sync | ⬜ | ⬜ | |
+| CP3 | **MANUAL CHECKPOINT 3** | ⬜ | ⬜ | |
+| 4.1 | List Messages API | ⬜ | ⬜ | |
+| 4.2 | Get Single Message API | ⬜ | ⬜ | |
+| 4.3 | Compose & Send API | ⬜ | ⬜ | |
+| 4.4 | Message Actions API | ⬜ | ⬜ | |
+| 4.5 | Folder Management API | ⬜ | ⬜ | |
+| 4.6 | Search API | ⬜ | ⬜ | |
+| 4.7 | Contacts API | ⬜ | ⬜ | |
+| 4.8 | Account Management API | ⬜ | ⬜ | |
+| CP4 | **MANUAL CHECKPOINT 4** | ⬜ | ⬜ | |
+| 5.1 | App Layout Shell | ⬜ | ⬜ | |
+| 5.2 | Account Switcher | ⬜ | ⬜ | |
+| 5.3 | Folder Tree | ⬜ | ⬜ | |
+| 5.4 | Message List | ⬜ | ⬜ | |
+| 5.5 | Message Viewer | ⬜ | ⬜ | |
+| 5.6 | Composer | ⬜ | ⬜ | |
+| 5.7 | Search UI | ⬜ | ⬜ | |
+| 5.8 | Settings Pages | ⬜ | ⬜ | |
+| 5.9 | Notifications & Toasts | ⬜ | ⬜ | |
+| 5.10 | Keyboard Shortcuts | ⬜ | ⬜ | |
+| CP5 | **MANUAL CHECKPOINT 5** | ⬜ | ⬜ | |
+| 6.1 | AI Service Core | ⬜ | ⬜ | |
+| 6.2 | Email Drafting | ⬜ | ⬜ | |
+| 6.3 | Thread Summarization | ⬜ | ⬜ | |
+| 6.4 | Smart Replies | ⬜ | ⬜ | |
+| 6.5 | Priority Scoring | ⬜ | ⬜ | |
+| CP6 | **MANUAL CHECKPOINT 6** | ⬜ | ⬜ | |
+| 7.1 | Team Management | ⬜ | ⬜ | |
+| 7.2 | Shared Inbox Setup | ⬜ | ⬜ | |
+| 7.3 | Assignment System | ⬜ | ⬜ | |
+| 7.4 | Notes & Collision Detection | ⬜ | ⬜ | |
+| 7.5 | CRM Contact & Deal Mgmt | ⬜ | ⬜ | |
+| 7.6 | Activity Logging | ⬜ | ⬜ | |
+| CP7 | **MANUAL CHECKPOINT 7** | ⬜ | ⬜ | |
+| 8.1 | Tenant Branding | ⬜ | ⬜ | |
+| 8.2 | Custom Domain | ⬜ | ⬜ | |
+| 8.3 | Branded Login | ⬜ | ⬜ | |
+| 8.4 | Onboarding Wizard | ⬜ | ⬜ | |
+| 8.5 | Error Pages & Polish | ⬜ | ⬜ | |
+| CP8 | **MANUAL CHECKPOINT 8** | ⬜ | ⬜ | |
+| 9.1 | Calendar Sync | ⬜ | ⬜ | |
+| 9.2 | Calendar API Routes | ⬜ | ⬜ | |
+| 9.3 | Calendar Views (Month/Week/Day) | ⬜ | ⬜ | |
+| 9.4 | Event Creation/Edit Modal | ⬜ | ⬜ | |
+| 9.5 | Calendar Sidebar in Email | ⬜ | ⬜ | |
+| 9.6 | Calendar Notifications | ⬜ | ⬜ | |
+| 9.7 | Calendar Webhooks | ⬜ | ⬜ | |
+| 9.8 | Multi-Account Calendar Merge | ⬜ | ⬜ | |
+| CP9 | **MANUAL CHECKPOINT 9** | ⬜ | ⬜ | |
+| 10.1 | Teams Chat Sync | ⬜ | ⬜ | |
+| 10.2 | Teams & Channels Sync | ⬜ | ⬜ | |
+| 10.3 | Presence Sync | ⬜ | ⬜ | |
+| 10.4 | Teams Chat UI | ⬜ | ⬜ | |
+| 10.5 | Send Teams Message API | ⬜ | ⬜ | |
+| 10.6 | Teams Meeting Integration | ⬜ | ⬜ | |
+| 10.7 | Cross-Module Presence | ⬜ | ⬜ | |
+| CP10 | **MANUAL CHECKPOINT 10** | ⬜ | ⬜ | |
+| 11.1 | Unified Contact Sync | ⬜ | ⬜ | |
+| 11.2 | Contact Interaction Tracking | ⬜ | ⬜ | |
+| 11.3 | Smart Autocomplete | ⬜ | ⬜ | |
+| 11.4 | Contacts List & Detail UI | ⬜ | ⬜ | |
+| 11.5 | Contact Groups & Tags | ⬜ | ⬜ | |
+| 11.6 | Contact Import/Export | ⬜ | ⬜ | |
+| CP11 | **MANUAL CHECKPOINT 11 (FINAL)** | ⬜ | ⬜ | |
+
+## Error Log
+| Date | Step | Error | Resolution |
+|------|------|-------|------------|
+| | | | |
+
+## Agent Assignments
+| Agent | Steps | Status |
+|-------|-------|--------|
+| Phase 0: Risk Mitigation | POC 1-3 | ⬜ Not started - **MUST COMPLETE BEFORE AGENT 1** |
+| Agent 1: Foundation | 1.1 - 1.6 | ⬜ Not started |
+| Agent 2: Auth Engine | 2.1 - 2.7 | ⬜ Blocked by Agent 1 |
+| Agent 3: Sync Engine | 3.1 - 3.6 | ⬜ Blocked by Agent 2 |
+| Agent 4: Email API | 4.1 - 4.8 | ⬜ Blocked by Agent 2 |
+| Agent 5: UI Shell | 5.1 - 5.10 | ⬜ Blocked by Agent 4 |
+| Agent 6: AI Layer | 6.1 - 6.5 | ⬜ Blocked by Agent 5 |
+| Agent 7: Teams & CRM | 7.1 - 7.6 | ⬜ Blocked by Agent 5 |
+| Agent 8: White-Label | 8.1 - 8.5 | ⬜ Blocked by Agent 5 |
+| Agent 9: Calendar | 9.1 - 9.8 | ⬜ Blocked by Agent 5 |
+| Agent 10: MS Teams | 10.1 - 10.7 | ⬜ Blocked by Agent 5 |
+| Agent 11: Contacts Hub | 11.1 - 11.6 | ⬜ Blocked by Agent 5 |
+
+## Notes
+- Status: ⬜ Not started | 🔨 In progress | ✅ Passed | ❌ Failed | 🔄 Retrying
+- RULE: No step may begin until the previous step's test gate is ✅
+- RULE: No manual checkpoint may be skipped
+- RULE: Failed steps must be fixed before proceeding
