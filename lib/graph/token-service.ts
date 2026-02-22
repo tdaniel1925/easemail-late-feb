@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { ConfidentialClientApplication } from '@azure/msal-node';
 
 interface TokenData {
@@ -15,7 +15,7 @@ class TokenService {
    * Store tokens for an account (encrypted at rest by Supabase)
    */
   async storeTokens(accountId: string, tokens: TokenData): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { error } = await supabase
       .from('account_tokens')
@@ -41,7 +41,7 @@ class TokenService {
    * Auto-refreshes if token expires in < 5 minutes
    */
   async getAccessToken(accountId: string): Promise<string> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get token from database
     const { data: tokenData, error } = await supabase
@@ -93,7 +93,7 @@ class TokenService {
   }
 
   private async _doRefresh(accountId: string): Promise<string> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     try {
       // Get current tokens
@@ -179,7 +179,7 @@ class TokenService {
    * Sets account to 'needs_reauth' after 3 failures
    */
   async recordRefreshFailure(accountId: string, errorMessage: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Increment failure count
     const { data: tokenData } = await supabase
@@ -218,7 +218,7 @@ class TokenService {
    * Revoke tokens (on disconnect)
    */
   async revokeTokens(accountId: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Delete tokens from database
     const { error } = await supabase
@@ -237,7 +237,7 @@ class TokenService {
    * Get stored token data (for debugging/testing)
    */
   async getStoredToken(accountId: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { data, error } = await supabase
       .from('account_tokens')
