@@ -29,6 +29,8 @@ class TokenService {
         last_refreshed_at: new Date().toISOString(),
         refresh_failure_count: 0,
         last_refresh_error: null,
+      }, {
+        onConflict: 'account_id',
       });
 
     if (error) {
