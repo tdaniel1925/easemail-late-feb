@@ -1,6 +1,6 @@
 # BUILD-STATE.md — EaseMail v3.0
 
-## Current Status: CHECKPOINT 2 COMPLETE ✅ - Ready for Agent 3
+## Current Status: AGENT 3 COMPLETE ✅ - Ready for Checkpoint 3
 
 | Step | Name | Status | Test Result | Date |
 |------|------|--------|-------------|------|
@@ -30,7 +30,7 @@
 | 3.3 | Sync Orchestrator | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.4 | Webhook Setup & Handler | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.5 | Webhook Renewal Job | ✅ | ✅ PASSED | 2026-02-22 |
-| 3.6 | Attachment Sync | ⬜ | ⬜ | |
+| 3.6 | Attachment Sync | ✅ | ✅ PASSED | 2026-02-22 |
 | CP3 | **MANUAL CHECKPOINT 3** | ⬜ | ⬜ | |
 | 4.1 | List Messages API | ⬜ | ⬜ | |
 | 4.2 | Get Single Message API | ⬜ | ⬜ | |
@@ -107,7 +107,7 @@
 | Phase 0: Risk Mitigation | POC 1-3 | ✅ **COMPLETE - All POCs passed** |
 | Agent 1: Foundation | 1.1 - 1.6 | ✅ Complete (2026-02-22) |
 | Agent 2: Auth Engine | 2.1 - 2.7 | ✅ Complete (2026-02-22) |
-| Agent 3: Sync Engine | 3.1 - 3.6 | ⬜ Blocked by Agent 2 CP2 |
+| Agent 3: Sync Engine | 3.1 - 3.6 | ✅ Complete (2026-02-22) |
 | Agent 4: Email API | 4.1 - 4.8 | ⬜ Blocked by Agent 2 |
 | Agent 5: UI Shell | 5.1 - 5.10 | ⬜ Blocked by Agent 4 |
 | Agent 6: AI Layer | 6.1 - 6.5 | ⬜ Blocked by Agent 5 |
