@@ -1,6 +1,6 @@
 # BUILD-STATE.md — EaseMail v3.0
 
-## Current Status: AGENT 1 COMPLETE ✅ - Ready for Agent 2
+## Current Status: CHECKPOINT 2 COMPLETE ✅ - Ready for Agent 3
 
 | Step | Name | Status | Test Result | Date |
 |------|------|--------|-------------|------|
@@ -16,14 +16,15 @@
 | 1.5 | Zustand Store Setup | ✅ | ✅ PASSED | 2026-02-22 |
 | 1.6 | Background Job Infrastructure | ✅ | ✅ PASSED | 2026-02-22 |
 | CP1 | **MANUAL CHECKPOINT 1** | ✅ | ✅ PASSED | 2026-02-22 |
-| 2.1 | NextAuth Microsoft Provider | ⬜ | ⬜ | |
-| 2.2 | Token Storage Service | ⬜ | ⬜ | |
-| 2.3 | Graph Client Factory | ⬜ | ⬜ | |
-| 2.4 | Connect Account Flow | ⬜ | ⬜ | |
-| 2.5 | Disconnect Account Flow | ⬜ | ⬜ | |
-| 2.6 | Reauth Flow | ⬜ | ⬜ | |
-| 2.7 | Token Refresh Job | ⬜ | ⬜ | |
-| CP2 | **MANUAL CHECKPOINT 2** | ⬜ | ⬜ | |
+| **AGENT 2** | **AUTH ENGINE** | | | |
+| 2.1 | NextAuth Microsoft Provider | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.2 | Token Storage Service | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.3 | Graph Client Factory | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.4 | Connect Account Flow | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.5 | Disconnect Account Flow | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.6 | Reauth Flow | ✅ | ✅ PASSED | 2026-02-22 |
+| 2.7 | Token Refresh Job | ✅ | ✅ PASSED | 2026-02-22 |
+| CP2 | **MANUAL CHECKPOINT 2** | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.1 | Folder Sync | ⬜ | ⬜ | |
 | 3.2 | Message Delta Sync | ⬜ | ⬜ | |
 | 3.3 | Sync Orchestrator | ⬜ | ⬜ | |
@@ -105,8 +106,8 @@
 |-------|-------|--------|
 | Phase 0: Risk Mitigation | POC 1-3 | ✅ **COMPLETE - All POCs passed** |
 | Agent 1: Foundation | 1.1 - 1.6 | ✅ Complete (2026-02-22) |
-| Agent 2: Auth Engine | 2.1 - 2.7 | ⬜ Blocked by Agent 1 |
-| Agent 3: Sync Engine | 3.1 - 3.6 | ⬜ Blocked by Agent 2 |
+| Agent 2: Auth Engine | 2.1 - 2.7 | ✅ Complete (2026-02-22) |
+| Agent 3: Sync Engine | 3.1 - 3.6 | ⬜ Blocked by Agent 2 CP2 |
 | Agent 4: Email API | 4.1 - 4.8 | ⬜ Blocked by Agent 2 |
 | Agent 5: UI Shell | 5.1 - 5.10 | ⬜ Blocked by Agent 4 |
 | Agent 6: AI Layer | 6.1 - 6.5 | ⬜ Blocked by Agent 5 |
