@@ -41,3 +41,4 @@ coverage/
 
 # POC environment variables
 pocs/.env
+pocs/.env.backup

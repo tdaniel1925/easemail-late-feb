@@ -1,6 +1,6 @@
 # BUILD-STATE.md — EaseMail v3.0
 
-## Current Status: STEP 1.2 (READY TO START)
+## Current Status: STEP 1.3 (READY TO START)
 
 | Step | Name | Status | Test Result | Date |
 |------|------|--------|-------------|------|
@@ -10,7 +10,7 @@
 | 0.3 | POC: Webhook Reliability | ✅ | ✅ PASSED (14/5 notifications) | 2026-02-22 |
 | **AGENT 1** | **FOUNDATION** | | | |
 | 1.1 | Project Scaffold | ✅ | ✅ PASSED | 2026-02-22 |
-| 1.2 | Database Migration | ⬜ | ⬜ | |
+| 1.2 | Database Migration | ✅ | ✅ PASSED | 2026-02-22 |
 | 1.3 | Environment Config | ⬜ | ⬜ | |
 | 1.4 | Supabase Client Setup | ⬜ | ⬜ | |
 | 1.5 | Zustand Store Setup | ⬜ | ⬜ | |
