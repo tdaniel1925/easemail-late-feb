@@ -1,6 +1,6 @@
 # BUILD-STATE.md — EaseMail v3.0
 
-## Current Status: STEP 1.3 (READY TO START)
+## Current Status: CHECKPOINT 1 (READY FOR MANUAL VERIFICATION)
 
 | Step | Name | Status | Test Result | Date |
 |------|------|--------|-------------|------|
@@ -11,10 +11,10 @@
 | **AGENT 1** | **FOUNDATION** | | | |
 | 1.1 | Project Scaffold | ✅ | ✅ PASSED | 2026-02-22 |
 | 1.2 | Database Migration | ✅ | ✅ PASSED | 2026-02-22 |
-| 1.3 | Environment Config | ⬜ | ⬜ | |
-| 1.4 | Supabase Client Setup | ⬜ | ⬜ | |
-| 1.5 | Zustand Store Setup | ⬜ | ⬜ | |
-| 1.6 | Background Job Infrastructure | ⬜ | ⬜ | |
+| 1.3 | Environment Config | ✅ | ✅ PASSED | 2026-02-22 |
+| 1.4 | Supabase Client Setup | ✅ | ✅ PASSED | 2026-02-22 |
+| 1.5 | Zustand Store Setup | ✅ | ✅ PASSED | 2026-02-22 |
+| 1.6 | Background Job Infrastructure | ✅ | ✅ PASSED | 2026-02-22 |
 | CP1 | **MANUAL CHECKPOINT 1** | ⬜ | ⬜ | |
 | 2.1 | NextAuth Microsoft Provider | ⬜ | ⬜ | |
 | 2.2 | Token Storage Service | ⬜ | ⬜ | |
