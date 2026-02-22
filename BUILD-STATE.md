@@ -1,6 +1,6 @@
 # BUILD-STATE.md — EaseMail v3.0
 
-## Current Status: STEP 1.1 (NOT STARTED)
+## Current Status: STEP 1.2 (READY TO START)
 
 | Step | Name | Status | Test Result | Date |
 |------|------|--------|-------------|------|
@@ -9,7 +9,7 @@
 | 0.2 | POC: Delta Sync Performance | ✅ | ✅ PASSED (88ms delta) | 2026-02-22 |
 | 0.3 | POC: Webhook Reliability | ✅ | ✅ PASSED (14/5 notifications) | 2026-02-22 |
 | **AGENT 1** | **FOUNDATION** | | | |
-| 1.1 | Project Scaffold | ⬜ | ⬜ | |
+| 1.1 | Project Scaffold | ✅ | ✅ PASSED | 2026-02-22 |
 | 1.2 | Database Migration | ⬜ | ⬜ | |
 | 1.3 | Environment Config | ⬜ | ⬜ | |
 | 1.4 | Supabase Client Setup | ⬜ | ⬜ | |
