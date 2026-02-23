@@ -69,13 +69,17 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
       ALLOWED_TAGS: [
         "p", "br", "span", "div", "b", "i", "u", "strong", "em", "a", "ul", "ol", "li",
         "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "code", "table", "thead",
-        "tbody", "tr", "td", "th", "hr", "img", "font"
+        "tbody", "tr", "td", "th", "hr", "img", "font", "center", "small", "big", "sub", "sup",
+        "strike", "s", "del", "ins", "mark", "abbr", "cite", "q", "dl", "dt", "dd", "caption",
+        "colgroup", "col", "tfoot"
       ],
       ALLOWED_ATTR: [
         "href", "target", "rel", "src", "alt", "width", "height", "style", "class",
-        "color", "size", "face", "align", "bgcolor"
+        "color", "size", "face", "align", "bgcolor", "border", "cellpadding", "cellspacing",
+        "colspan", "rowspan", "valign", "dir", "lang", "title", "aria-label", "aria-hidden",
+        "id", "name"
       ],
-      ALLOW_DATA_ATTR: false,
+      ALLOW_DATA_ATTR: true,
       ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     };
 
