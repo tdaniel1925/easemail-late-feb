@@ -1,6 +1,8 @@
 "use client";
 
-import { Paperclip, Download, FileText, Image as ImageIcon, File } from "lucide-react";
+import { useState } from "react";
+import { Paperclip, Download, FileText, Image as ImageIcon, File, Eye } from "lucide-react";
+import { Lightbox } from "@/components/ui/Lightbox";
 
 interface Attachment {
   id: string;
@@ -17,6 +19,9 @@ interface AttachmentListProps {
 }
 
 export function AttachmentList({ attachments, messageId }: AttachmentListProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
   if (!attachments || attachments.length === 0) {
     return null;
   }
@@ -50,6 +55,15 @@ export function AttachmentList({ attachments, messageId }: AttachmentListProps) 
     return <File size={16} className="text-text-tertiary" strokeWidth={1.5} />;
   };
 
+  const isImage = (contentType: string | null) => {
+    return contentType?.startsWith("image/") || false;
+  };
+
+  const handlePreview = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
   const handleDownload = async (attachmentId: string, name: string) => {
     try {
       const response = await fetch(`/api/mail/messages/${messageId}/attachments/${attachmentId}`);
@@ -79,31 +93,76 @@ export function AttachmentList({ attachments, messageId }: AttachmentListProps) 
     return null;
   }
 
+  // Get image attachments for lightbox
+  const imageAttachments = displayAttachments
+    .map((att, index) => ({ ...att, originalIndex: index }))
+    .filter((att) => isImage(att.content_type));
+
+  const lightboxImages = imageAttachments.map((att) => ({
+    id: att.id,
+    name: att.name,
+    url: `/api/mail/messages/${messageId}/attachments/${att.id}`,
+  }));
+
   return (
-    <div className="border-b border-border-subtle bg-surface-secondary px-4 py-3">
-      <div className="flex items-center gap-2 mb-2">
-        <Paperclip size={14} className="text-text-tertiary" strokeWidth={1.5} />
-        <span className="text-xs font-medium text-text-secondary">
-          {displayAttachments.length} {displayAttachments.length === 1 ? "attachment" : "attachments"}
-        </span>
+    <>
+      <div className="border-b border-border-subtle bg-surface-secondary px-4 py-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Paperclip size={14} className="text-text-tertiary" strokeWidth={1.5} />
+          <span className="text-xs font-medium text-text-secondary">
+            {displayAttachments.length} {displayAttachments.length === 1 ? "attachment" : "attachments"}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {displayAttachments.map((attachment, index) => {
+            const isImg = isImage(attachment.content_type);
+            const imageIndex = imageAttachments.findIndex((img) => img.id === attachment.id);
+
+            return (
+              <div
+                key={attachment.id}
+                className="flex items-center gap-2 rounded-md border border-border-default bg-surface-primary px-3 py-2"
+              >
+                {getFileIcon(attachment.content_type)}
+                <div className="flex flex-col items-start">
+                  <span className="text-xs font-medium text-text-primary">{attachment.name}</span>
+                  <span className="text-[10px] text-text-tertiary">{formatFileSize(attachment.size_bytes)}</span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="ml-2 flex items-center gap-1">
+                  {isImg && (
+                    <button
+                      onClick={() => handlePreview(imageIndex)}
+                      className="rounded p-1 transition-colors hover:bg-surface-hover"
+                      title="Preview"
+                    >
+                      <Eye size={14} className="text-text-tertiary" strokeWidth={1.5} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDownload(attachment.id, attachment.name)}
+                    className="rounded p-1 transition-colors hover:bg-surface-hover"
+                    title="Download"
+                  >
+                    <Download size={14} className="text-text-tertiary" strokeWidth={1.5} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {displayAttachments.map((attachment) => (
-          <button
-            key={attachment.id}
-            onClick={() => handleDownload(attachment.id, attachment.name)}
-            className="flex items-center gap-2 rounded-md border border-border-default bg-surface-primary px-3 py-2 transition-colors hover:bg-surface-hover"
-          >
-            {getFileIcon(attachment.content_type)}
-            <div className="flex flex-col items-start">
-              <span className="text-xs font-medium text-text-primary">{attachment.name}</span>
-              <span className="text-[10px] text-text-tertiary">{formatFileSize(attachment.size_bytes)}</span>
-            </div>
-            <Download size={14} className="ml-1 text-text-tertiary" strokeWidth={1.5} />
-          </button>
-        ))}
-      </div>
-    </div>
+      {/* Lightbox for image preview */}
+      {lightboxOpen && lightboxImages.length > 0 && (
+        <Lightbox
+          images={lightboxImages}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+    </>
   );
 }
