@@ -25,6 +25,8 @@ interface MessageBodyProps {
 export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, messageId, attachments = [] }: MessageBodyProps) {
   const [showImages, setShowImages] = useState(false);
   const [hasExternalImages, setHasExternalImages] = useState(false);
+  const [showQuotedText, setShowQuotedText] = useState(false);
+  const [hasQuotedText, setHasQuotedText] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -97,6 +99,33 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
       });
     }
 
+    // Detect and mark quoted content
+    if (!showQuotedText) {
+      const quotedElements = tempDiv.querySelectorAll(
+        'blockquote, .gmail_quote, [class*="quoted"], [class*="OutlookQuote"]'
+      );
+
+      // Check for text-based quote markers (lines starting with >)
+      const textContent = tempDiv.textContent || "";
+      const hasTextQuotes = textContent.split("\n").some((line) => line.trim().startsWith(">"));
+
+      if (quotedElements.length > 0 || hasTextQuotes) {
+        setHasQuotedText(true);
+
+        // Hide quoted blockquotes and quote elements
+        quotedElements.forEach((el) => {
+          (el as HTMLElement).style.display = "none";
+          (el as HTMLElement).setAttribute("data-quoted", "true");
+        });
+      }
+    } else {
+      // Show all quoted elements
+      const quotedElements = tempDiv.querySelectorAll('[data-quoted="true"]');
+      quotedElements.forEach((el) => {
+        (el as HTMLElement).style.display = "";
+      });
+    }
+
     return tempDiv.innerHTML;
   };
 
@@ -104,20 +133,64 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
     if (bodyHtml) {
       const sanitizedHtml = sanitizeHtml(bodyHtml, showImages);
       return (
-        <div
-          ref={bodyRef}
-          className="email-content"
-          dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-        />
+        <>
+          <div
+            ref={bodyRef}
+            className="email-content"
+            dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
+          />
+
+          {/* Show quoted text button */}
+          {hasQuotedText && !showQuotedText && (
+            <button
+              onClick={() => setShowQuotedText(true)}
+              className="mt-4 flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary"
+            >
+              <span className="text-text-tertiary">•••</span>
+              <span>Show quoted text</span>
+            </button>
+          )}
+        </>
       );
     }
 
     if (bodyText) {
+      // Process plain text for quoted content
+      const lines = bodyText.split("\n");
+      const quotedLines: string[] = [];
+      const nonQuotedLines: string[] = [];
+
+      lines.forEach((line) => {
+        if (line.trim().startsWith(">")) {
+          quotedLines.push(line);
+        } else {
+          nonQuotedLines.push(line);
+        }
+      });
+
+      const hasQuoted = quotedLines.length > 0;
+
       return (
         <div className="email-content">
           <div style={{ whiteSpace: "pre-wrap" }}>
-            {bodyText}
+            {nonQuotedLines.join("\n")}
           </div>
+
+          {hasQuoted && !showQuotedText && (
+            <button
+              onClick={() => setShowQuotedText(true)}
+              className="mt-4 flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary"
+            >
+              <span className="text-text-tertiary">•••</span>
+              <span>Show quoted text</span>
+            </button>
+          )}
+
+          {hasQuoted && showQuotedText && (
+            <div className="mt-4 border-l-2 border-border-default pl-4 text-text-secondary" style={{ whiteSpace: "pre-wrap" }}>
+              {quotedLines.join("\n")}
+            </div>
+          )}
         </div>
       );
     }
@@ -221,6 +294,25 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
           padding: 8px 0 8px 16px;
           color: var(--text-secondary, #6B7280);
           font-style: italic;
+        }
+
+        /* Quoted email styles */}
+        .email-content .gmail_quote,
+        .email-content [class*="quoted"],
+        .email-content [class*="OutlookQuote"] {
+          border-left: 2px solid var(--border-subtle, #F1F3F5);
+          padding-left: 12px;
+          margin-left: 8px;
+          color: var(--text-secondary, #6B7280);
+          font-size: 12px;
+        }
+
+        .email-content [data-quoted="true"] {
+          border-left: 2px solid var(--border-subtle, #F1F3F5);
+          padding-left: 12px;
+          margin-left: 8px;
+          margin-top: 16px;
+          color: var(--text-secondary, #6B7280);
         }
 
         .email-content code {
