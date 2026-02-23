@@ -242,11 +242,11 @@ export function FolderTree({ accountId }: FolderTreeProps) {
       f.folder_type &&
       ["inbox", "sentitems", "drafts", "deleteditems", "archive"].includes(f.folder_type)
   );
-  // Custom folders are ONLY those with folder_type='custom' or null (excluding system types)
+  // Custom folders are everything else (including junkemail, outbox, and actual custom folders)
   const customFolders = rootFolders.filter(
     (f) =>
-      f.folder_type === "custom" ||
-      (!f.folder_type && !["inbox", "sentitems", "drafts", "deleteditems", "archive", "junkemail", "outbox"].includes(f.display_name.toLowerCase().replace(' ', '')))
+      !f.folder_type ||
+      !["inbox", "sentitems", "drafts", "deleteditems", "archive"].includes(f.folder_type)
   );
 
   // Sort system folders in specific order

@@ -216,7 +216,27 @@ export const useMailStore = create<MailState>()(
 
       getRootFolders: () => {
         const state = get();
-        return state.folders.filter((f) => !f.parent_graph_id);
+
+        // Find the most common parent_graph_id (this is the mailbox root)
+        const parentCounts = new Map<string, number>();
+        state.folders.forEach((f) => {
+          if (f.parent_graph_id) {
+            parentCounts.set(f.parent_graph_id, (parentCounts.get(f.parent_graph_id) || 0) + 1);
+          }
+        });
+
+        // Get the parent with the most children (mailbox root)
+        let mailboxRootId: string | null = null;
+        let maxCount = 0;
+        parentCounts.forEach((count, parentId) => {
+          if (count > maxCount) {
+            maxCount = count;
+            mailboxRootId = parentId;
+          }
+        });
+
+        // Return all folders with that parent (top-level folders)
+        return state.folders.filter((f) => f.parent_graph_id === mailboxRootId);
       },
 
       // Message getters
