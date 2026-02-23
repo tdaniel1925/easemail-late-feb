@@ -29,8 +29,24 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
   const [hasQuotedText, setHasQuotedText] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
+  const handleTrustSender = () => {
+    if (!fromAddress) return;
+
+    const trustedSenders = JSON.parse(localStorage.getItem("easemail_trusted_senders") || "[]");
+    if (!trustedSenders.includes(fromAddress.toLowerCase())) {
+      trustedSenders.push(fromAddress.toLowerCase());
+      localStorage.setItem("easemail_trusted_senders", JSON.stringify(trustedSenders));
+    }
+
+    setShowImages(true);
+  };
+
   useEffect(() => {
     if (bodyRef.current && bodyHtml) {
+      // Check if sender is trusted
+      const trustedSenders = JSON.parse(localStorage.getItem("easemail_trusted_senders") || "[]");
+      const isTrusted = fromAddress && trustedSenders.includes(fromAddress.toLowerCase());
+
       // Check if there are external images
       const tempDiv = document.createElement("div");
       tempDiv.innerHTML = bodyHtml;
@@ -40,8 +56,13 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
         return src.startsWith("http://") || src.startsWith("https://");
       });
       setHasExternalImages(hasExternal);
+
+      // Auto-load images if sender is trusted
+      if (isTrusted && hasExternal) {
+        setShowImages(true);
+      }
     }
-  }, [bodyHtml]);
+  }, [bodyHtml, fromAddress]);
 
   const sanitizeHtml = (html: string, allowImages: boolean = false) => {
     const config: DOMPurify.Config = {
@@ -214,12 +235,23 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
                 External images are blocked for your privacy
               </span>
             </div>
-            <button
-              onClick={() => setShowImages(true)}
-              className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
-            >
-              Load images
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowImages(true)}
+                className="rounded-md border border-border-default bg-surface-primary px-3 py-1 text-xs font-medium text-text-primary transition-colors hover:bg-surface-hover"
+              >
+                Load images
+              </button>
+              {fromAddress && (
+                <button
+                  onClick={handleTrustSender}
+                  className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
+                  title={`Always load images from ${fromAddress}`}
+                >
+                  Trust sender
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
