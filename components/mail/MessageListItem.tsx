@@ -65,45 +65,25 @@ export function MessageListItem({
   return (
     <div
       onClick={handleRowClick}
-      className={`flex cursor-pointer gap-3 border-b border-border-subtle px-4 py-2 transition-colors ${
+      className={`group relative flex cursor-pointer gap-2.5 border-b border-border-subtle px-3 py-2 transition-colors ${
         isSelected
-          ? "border-l-2 border-l-accent bg-surface-selected"
+          ? "border-l-2 border-l-accent bg-accent-subtle"
           : "border-l-2 border-l-transparent hover:bg-surface-hover"
       }`}
-      style={{ minHeight: "72px" }}
+      style={{ minHeight: "60px" }}
     >
-      {/* Checkbox */}
-      <div className="flex flex-shrink-0 items-center">
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={handleCheckboxClick}
-          onClick={handleCheckboxClick}
-          className="h-4 w-4 rounded border-border-default text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
-        />
-      </div>
-
       {/* Unread indicator dot */}
       {isUnread && (
-        <div className="flex flex-shrink-0 items-start pt-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-accent" />
-        </div>
+        <div className="absolute left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-accent" />
       )}
 
-      {/* Avatar */}
-      <div className="flex flex-shrink-0 items-start pt-1">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white">
-          {getInitials(message.from_name, message.from_address)}
-        </div>
-      </div>
-
       {/* Message content */}
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
         {/* Top row: from name and date */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <span
-            className={`flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-sm ${
-              isUnread ? "font-semibold text-text-primary" : "font-normal text-text-primary"
+            className={`flex-1 overflow-hidden text-ellipsis whitespace-nowrap ${
+              isUnread ? "text-sm font-semibold text-text-primary" : "text-sm font-normal text-text-secondary"
             }`}
           >
             {message.from_name || message.from_address || "Unknown"}
@@ -114,50 +94,29 @@ export function MessageListItem({
         </div>
 
         {/* Subject */}
-        <div
-          className={`overflow-hidden text-ellipsis whitespace-nowrap text-sm ${
-            isUnread ? "font-semibold text-text-primary" : "font-normal text-text-primary"
-          }`}
-        >
+        <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium text-text-primary">
           {message.subject || "(No subject)"}
         </div>
 
         {/* Preview */}
-        <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs text-text-secondary">
+        <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs leading-tight text-text-tertiary">
           {message.preview || ""}
         </div>
+      </div>
 
-        {/* Bottom row: icons and labels */}
-        <div className="flex items-center gap-2 pt-0.5">
-          {message.has_attachments && (
-            <Paperclip size={11} className="text-text-tertiary" strokeWidth={1.5} />
-          )}
-
-          {message.categories && message.categories.length > 0 && (
-            <div className="flex gap-1">
-              {message.categories.slice(0, 2).map((category) => (
-                <span
-                  key={category}
-                  className="rounded bg-surface-tertiary px-1.5 py-0.5 text-[10px] text-text-secondary"
-                >
-                  {category}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Flag icon */}
-          {isFlagged && (
-            <div className="ml-auto">
-              <Flag
-                size={11}
-                className="text-accent"
-                strokeWidth={1.5}
-                fill="currentColor"
-              />
-            </div>
-          )}
-        </div>
+      {/* Hover icons */}
+      <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        {message.has_attachments && (
+          <Paperclip size={12} className="text-text-tertiary" strokeWidth={1.5} />
+        )}
+        {isFlagged && (
+          <Flag
+            size={12}
+            className="text-accent"
+            strokeWidth={1.5}
+            fill="currentColor"
+          />
+        )}
       </div>
     </div>
   );

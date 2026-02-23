@@ -187,47 +187,24 @@ export function MessageList() {
   // Message list
   return (
     <div className="flex h-full flex-col bg-surface-primary">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border-default px-4 py-3">
-        <div className="flex items-center gap-3">
-          <input
-            type="checkbox"
-            checked={selectedMessageIds.size === messages.length && messages.length > 0}
-            onChange={handleSelectAll}
-            className="h-4 w-4 rounded border-border-default text-accent focus:ring-2 focus:ring-accent focus:ring-offset-0"
-            title="Select all"
-          />
-          <h2 className="text-sm font-semibold text-text-primary">
-            Inbox
-            {messages.length > 0 && (
-              <span className="ml-2 text-xs font-normal text-text-tertiary">
-                ({messages.length})
-              </span>
-            )}
-          </h2>
-        </div>
+      {/* Header - cleaner, denser */}
+      <div className="flex h-11 flex-shrink-0 items-center justify-between border-b border-border-default px-3">
+        <span className="text-sm font-medium text-text-primary">
+          {messages.length} {messages.length === 1 ? "message" : "messages"}
+        </span>
 
-        <div className="flex items-center gap-1">
-          <button
-            className="rounded-md p-1.5 transition-colors hover:bg-surface-tertiary"
-            title="Filter"
-          >
-            <Filter size={16} className="text-text-secondary" strokeWidth={1.5} />
-          </button>
+        <div className="flex items-center gap-0.5">
           <button
             onClick={handleRefresh}
-            className="rounded-md p-1.5 transition-colors hover:bg-surface-tertiary"
+            className="rounded p-1.5 transition-colors hover:bg-surface-tertiary"
             title="Refresh"
           >
-            <RefreshCw size={16} className="text-text-secondary" strokeWidth={1.5} />
+            <RefreshCw size={14} className="text-text-secondary" strokeWidth={1.5} />
           </button>
         </div>
       </div>
 
-      {/* Toolbar (shown when messages selected) */}
-      <MessageListToolbar onRefresh={handleRefresh} />
-
-      {/* Message list */}
+      {/* Message list - scrollable */}
       <div className="flex-1 overflow-y-auto">
         {messages.map((message) => (
           <MessageListItem
