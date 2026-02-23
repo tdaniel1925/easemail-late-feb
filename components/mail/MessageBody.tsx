@@ -78,38 +78,25 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
       return (
         <div
           ref={bodyRef}
-          className="prose prose-sm max-w-none text-text-primary"
+          className="email-content"
           dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
-          style={{
-            fontSize: "13px",
-            lineHeight: "1.5",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-          }}
         />
       );
     }
 
     if (bodyText) {
       return (
-        <div
-          className="whitespace-pre-wrap text-text-primary"
-          style={{
-            fontSize: "13px",
-            lineHeight: "1.5",
-            wordBreak: "break-word",
-            overflowWrap: "break-word",
-            fontFamily: "inherit",
-          }}
-        >
-          {bodyText}
+        <div className="email-content">
+          <div style={{ whiteSpace: "pre-wrap" }}>
+            {bodyText}
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="text-sm italic text-text-tertiary">
-        (No content)
+      <div className="flex h-64 items-center justify-center">
+        <p className="text-sm italic text-text-tertiary">(No content)</p>
       </div>
     );
   };
@@ -136,10 +123,140 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
         </div>
       )}
 
-      {/* Message Body Content */}
-      <div className="px-4 py-4">
+      {/* Message Body Content - centered with max width for readability */}
+      <div className="mx-auto max-w-3xl px-6 py-6">
         {renderContent()}
       </div>
+
+      <style jsx global>{`
+        .email-content {
+          font-size: 13px;
+          line-height: 1.625;
+          color: var(--text-primary, #1A1A1A);
+        }
+
+        .email-content p {
+          margin: 0 0 16px 0;
+        }
+
+        .email-content p:last-child {
+          margin-bottom: 0;
+        }
+
+        .email-content h1,
+        .email-content h2,
+        .email-content h3,
+        .email-content h4 {
+          font-weight: 600;
+          line-height: 1.3;
+          margin: 24px 0 12px 0;
+          color: var(--text-primary, #1A1A1A);
+        }
+
+        .email-content h1 {
+          font-size: 18px;
+        }
+
+        .email-content h2 {
+          font-size: 16px;
+        }
+
+        .email-content h3,
+        .email-content h4 {
+          font-size: 14px;
+        }
+
+        .email-content a {
+          color: var(--accent, #FF7F50);
+          text-decoration: none;
+          border-bottom: 1px solid transparent;
+          transition: border-color 0.15s ease;
+        }
+
+        .email-content a:hover {
+          border-bottom-color: var(--accent, #FF7F50);
+        }
+
+        .email-content ul,
+        .email-content ol {
+          margin: 0 0 16px 0;
+          padding-left: 24px;
+        }
+
+        .email-content li {
+          margin: 4px 0;
+        }
+
+        .email-content blockquote {
+          border-left: 3px solid var(--border-default, #E5E7EB);
+          margin: 16px 0;
+          padding: 8px 0 8px 16px;
+          color: var(--text-secondary, #6B7280);
+          font-style: italic;
+        }
+
+        .email-content code {
+          background: var(--bg-tertiary, #F1F3F5);
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-family: 'Geist Mono', monospace;
+          font-size: 12px;
+        }
+
+        .email-content pre {
+          background: var(--bg-tertiary, #F1F3F5);
+          padding: 12px;
+          border-radius: 6px;
+          overflow-x: auto;
+          margin: 16px 0;
+        }
+
+        .email-content pre code {
+          background: none;
+          padding: 0;
+        }
+
+        .email-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 6px;
+          margin: 16px 0;
+        }
+
+        .email-content table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 16px 0;
+        }
+
+        .email-content th,
+        .email-content td {
+          border: 1px solid var(--border-default, #E5E7EB);
+          padding: 8px 12px;
+          text-align: left;
+        }
+
+        .email-content th {
+          background: var(--bg-secondary, #F8F9FA);
+          font-weight: 500;
+        }
+
+        .email-content hr {
+          border: none;
+          border-top: 1px solid var(--border-default, #E5E7EB);
+          margin: 24px 0;
+        }
+
+        .email-content strong,
+        .email-content b {
+          font-weight: 600;
+        }
+
+        .email-content em,
+        .email-content i {
+          font-style: italic;
+        }
+      `}</style>
     </div>
   );
 }
