@@ -32,14 +32,14 @@
 | 3.5 | Webhook Renewal Job | ✅ | ✅ PASSED | 2026-02-22 |
 | 3.6 | Attachment Sync | ✅ | ✅ PASSED | 2026-02-22 |
 | CP3 | **MANUAL CHECKPOINT 3** | ✅ | ✅ PASSED | 2026-02-22 |
-| 4.1 | List Messages API | ⬜ | ⬜ | |
-| 4.2 | Get Single Message API | ⬜ | ⬜ | |
-| 4.3 | Compose & Send API | ⬜ | ⬜ | |
-| 4.4 | Message Actions API | ⬜ | ⬜ | |
-| 4.5 | Folder Management API | ⬜ | ⬜ | |
-| 4.6 | Search API | ⬜ | ⬜ | |
-| 4.7 | Contacts API | ⬜ | ⬜ | |
-| 4.8 | Account Management API | ⬜ | ⬜ | |
+| 4.1 | List Messages API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.2 | Get Single Message API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.3 | Compose & Send API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.4 | Message Actions API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.5 | Folder Management API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.6 | Search API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.7 | Contacts API | ✅ | ✅ PASSED | 2026-02-22 |
+| 4.8 | Account Management API | ✅ | ✅ PASSED | 2026-02-22 |
 | CP4 | **MANUAL CHECKPOINT 4** | ⬜ | ⬜ | |
 | 5.1 | App Layout Shell | ⬜ | ⬜ | |
 | 5.2 | Account Switcher | ⬜ | ⬜ | |
