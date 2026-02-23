@@ -64,16 +64,17 @@ export function MessageViewer() {
       const data = await response.json();
 
       // Debug logging to verify data structure
-      console.log('[MessageViewer] Message loaded:', {
-        id: data.id,
-        subject: data.subject,
-        toStructure: data.to?.[0],
-        ccStructure: data.cc?.[0],
-        hasAttachments: data.has_attachments,
-        attachmentCount: data.attachments?.length,
-        bodyHtmlLength: data.body?.html?.length,
-        bodyTextLength: data.body?.text?.length,
-      });
+      console.error('===== MESSAGE VIEWER DEBUG =====');
+      console.error('[MessageViewer] Message ID:', data.id);
+      console.error('[MessageViewer] Subject:', data.subject);
+      console.error('[MessageViewer] Has attachments:', data.has_attachments);
+      console.error('[MessageViewer] Attachment count:', data.attachments?.length);
+      console.error('[MessageViewer] Body HTML length:', data.body?.html?.length);
+      console.error('[MessageViewer] Body TEXT length:', data.body?.text?.length);
+      console.error('[MessageViewer] Body content type:', data.body?.content_type);
+      console.error('[MessageViewer] Body HTML (first 500 chars):\n', data.body?.html?.substring(0, 500));
+      console.error('[MessageViewer] Body HTML (last 300 chars):\n', data.body?.html?.substring(Math.max(0, (data.body?.html?.length || 0) - 300)));
+      console.error('===== END MESSAGE VIEWER DEBUG =====');
 
       setMessage(data);
 
