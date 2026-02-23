@@ -217,6 +217,8 @@ export const useMailStore = create<MailState>()(
       getRootFolders: () => {
         const state = get();
 
+        console.log('[mail-store] getRootFolders called, total folders:', state.folders.length);
+
         // Find the most common parent_graph_id (this is the mailbox root)
         const parentCounts = new Map<string, number>();
         state.folders.forEach((f) => {
@@ -224,6 +226,11 @@ export const useMailStore = create<MailState>()(
             parentCounts.set(f.parent_graph_id, (parentCounts.get(f.parent_graph_id) || 0) + 1);
           }
         });
+
+        console.log('[mail-store] Parent counts:', Array.from(parentCounts.entries()).map(([id, count]) => ({
+          parentId: id.substring(0, 20) + '...',
+          count
+        })));
 
         // Get the parent with the most children (mailbox root)
         let mailboxRootId: string | null = null;
@@ -235,8 +242,12 @@ export const useMailStore = create<MailState>()(
           }
         });
 
+        console.log('[mail-store] Selected mailbox root:', mailboxRootId?.substring(0, 20) + '...', 'with', maxCount, 'folders');
+
         // Return all folders with that parent (top-level folders)
-        return state.folders.filter((f) => f.parent_graph_id === mailboxRootId);
+        const rootFolders = state.folders.filter((f) => f.parent_graph_id === mailboxRootId);
+        console.log('[mail-store] Returning', rootFolders.length, 'root folders:', rootFolders.map(f => f.display_name));
+        return rootFolders;
       },
 
       // Message getters

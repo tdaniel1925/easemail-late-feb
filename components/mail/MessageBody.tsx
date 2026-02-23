@@ -115,10 +115,10 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="h-full overflow-y-auto bg-surface-primary">
       {/* External Images Banner */}
       {hasExternalImages && !showImages && (
-        <div className="border-b border-border-subtle bg-surface-secondary px-4 py-2">
+        <div className="sticky top-0 z-10 border-b border-border-subtle bg-surface-secondary px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ImageIcon size={14} className="text-text-tertiary" strokeWidth={1.5} />
@@ -136,8 +136,8 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
         </div>
       )}
 
-      {/* Message Body */}
-      <div className="px-4 py-3">
+      {/* Message Body Content */}
+      <div className="px-4 py-4">
         {renderContent()}
       </div>
     </div>

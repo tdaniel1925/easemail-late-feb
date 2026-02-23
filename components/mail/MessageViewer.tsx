@@ -260,7 +260,8 @@ export function MessageViewer() {
 
   // Message viewer
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-surface-primary">
+    <div className="flex h-full flex-col bg-surface-primary">
+      {/* Header - fixed */}
       <div className="flex-shrink-0">
         <MessageHeader
           fromName={message.from.name}
@@ -285,6 +286,7 @@ export function MessageViewer() {
         )}
       </div>
 
+      {/* Body - scrollable fills remaining space */}
       <div className="flex-1 overflow-hidden">
         <MessageBody
           bodyHtml={message.body.html}
