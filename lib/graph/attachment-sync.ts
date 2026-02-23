@@ -113,8 +113,8 @@ export class AttachmentSyncService {
             size_bytes: attachment.size,
             is_inline: attachment.isInline,
             content_id: attachment.contentId,
-            content_base64: contentBytes,
-            content_stored: contentStored,
+            storage_path: contentBytes, // Store base64 in storage_path for cached attachments
+            is_cached: contentStored,
           });
 
           result.synced++;

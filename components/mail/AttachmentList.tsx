@@ -4,7 +4,7 @@ import { Paperclip, Download, FileText, Image as ImageIcon, File } from "lucide-
 
 interface Attachment {
   id: string;
-  filename: string;
+  name: string;
   content_type: string | null;
   size_bytes: number | null;
   is_inline: boolean | null;
@@ -50,7 +50,7 @@ export function AttachmentList({ attachments, messageId }: AttachmentListProps) 
     return <File size={16} className="text-text-tertiary" strokeWidth={1.5} />;
   };
 
-  const handleDownload = async (attachmentId: string, filename: string) => {
+  const handleDownload = async (attachmentId: string, name: string) => {
     try {
       const response = await fetch(`/api/mail/messages/${messageId}/attachments/${attachmentId}`);
 
@@ -62,7 +62,7 @@ export function AttachmentList({ attachments, messageId }: AttachmentListProps) 
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = filename;
+      a.download = name;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -92,12 +92,12 @@ export function AttachmentList({ attachments, messageId }: AttachmentListProps) 
         {displayAttachments.map((attachment) => (
           <button
             key={attachment.id}
-            onClick={() => handleDownload(attachment.id, attachment.filename)}
+            onClick={() => handleDownload(attachment.id, attachment.name)}
             className="flex items-center gap-2 rounded-md border border-border-default bg-surface-primary px-3 py-2 transition-colors hover:bg-surface-hover"
           >
             {getFileIcon(attachment.content_type)}
             <div className="flex flex-col items-start">
-              <span className="text-xs font-medium text-text-primary">{attachment.filename}</span>
+              <span className="text-xs font-medium text-text-primary">{attachment.name}</span>
               <span className="text-[10px] text-text-tertiary">{formatFileSize(attachment.size_bytes)}</span>
             </div>
             <Download size={14} className="ml-1 text-text-tertiary" strokeWidth={1.5} />

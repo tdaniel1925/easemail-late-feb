@@ -4,14 +4,25 @@ import { useEffect, useState, useRef } from "react";
 import DOMPurify from "dompurify";
 import { ImageIcon } from "lucide-react";
 
+interface Attachment {
+  id: string;
+  name: string;
+  content_type: string | null;
+  size_bytes: number | null;
+  is_inline: boolean | null;
+  content_id: string | null;
+}
+
 interface MessageBodyProps {
   bodyHtml: string | null;
   bodyText: string | null;
   contentType: string | null;
   fromAddress: string | null;
+  messageId: string;
+  attachments?: Attachment[];
 }
 
-export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: MessageBodyProps) {
+export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, messageId, attachments = [] }: MessageBodyProps) {
   const [showImages, setShowImages] = useState(false);
   const [hasExternalImages, setHasExternalImages] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -66,6 +77,23 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
       const images = tempDiv.querySelectorAll("img");
       images.forEach((img) => {
         img.setAttribute("loading", "lazy");
+
+        // Replace cid: references with actual attachment URLs
+        const src = img.getAttribute("src") || "";
+        if (src.startsWith("cid:")) {
+          const contentId = src.substring(4); // Remove "cid:" prefix
+
+          // Find the attachment by content_id
+          const attachment = attachments.find(
+            (att) => att.is_inline && att.content_id === contentId
+          );
+
+          if (attachment) {
+            // Replace with API URL
+            img.setAttribute("src", `/api/mail/messages/${messageId}/attachments/${attachment.id}`);
+            img.setAttribute("alt", attachment.name || "Inline image");
+          }
+        }
       });
     }
 

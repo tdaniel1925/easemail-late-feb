@@ -293,6 +293,8 @@ export function MessageViewer() {
           bodyText={message.body.text}
           contentType={message.body.content_type}
           fromAddress={message.from.address}
+          messageId={message.id}
+          attachments={message.attachments}
         />
       </div>
     </div>
