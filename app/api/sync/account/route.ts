@@ -8,10 +8,11 @@ import { SyncOrchestrator } from '@/lib/graph/sync-orchestrator';
  * Trigger full account sync (folders + messages)
  */
 export async function POST(request: NextRequest) {
+  let accountId: string | undefined;
   try {
     const supabase = createAdminClient();
     const body = await request.json();
-    const { accountId } = body;
+    accountId = body.accountId;
 
     if (!accountId) {
       return NextResponse.json(
@@ -66,12 +67,9 @@ export async function POST(request: NextRequest) {
     console.error('Account sync error:', error);
 
     // Update account sync status to error
-    try {
-      const supabase = createAdminClient();
-      const body = await request.json();
-      const { accountId } = body;
-
-      if (accountId) {
+    if (accountId) {
+      try {
+        const supabase = createAdminClient();
         await supabase
           .from('connected_accounts')
           .update({
@@ -79,9 +77,9 @@ export async function POST(request: NextRequest) {
             status_message: error.message,
           })
           .eq('id', accountId);
+      } catch (updateError) {
+        console.error('Failed to update account sync status:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update account sync status:', updateError);
     }
 
     return NextResponse.json(
