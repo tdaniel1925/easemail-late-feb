@@ -83,12 +83,29 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
       ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     };
 
+    // For debugging: be very permissive with sanitization
     if (!allowImages) {
-      // Block external images by removing src attribute
-      config.FORBID_ATTR = ["src"];
+      // Block external images but keep inline images (data: and cid:)
+      config.FORBID_ATTR = [];
+      config.ADD_ATTR = ['src'];
     }
 
     let sanitized = DOMPurify.sanitize(html, config);
+
+    // If images are not allowed, remove external image src after sanitization
+    if (!allowImages) {
+      const tempRemoveImages = document.createElement("div");
+      tempRemoveImages.innerHTML = sanitized;
+      const externalImages = tempRemoveImages.querySelectorAll("img");
+      externalImages.forEach((img) => {
+        const src = img.getAttribute("src") || "";
+        if (src.startsWith("http://") || src.startsWith("https://")) {
+          img.removeAttribute("src");
+          img.setAttribute("data-blocked-src", src);
+        }
+      });
+      sanitized = tempRemoveImages.innerHTML;
+    }
 
     // Add rel="noopener" to all links
     const tempDiv = document.createElement("div");
@@ -157,6 +174,13 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
   const renderContent = () => {
     if (bodyHtml) {
       const sanitizedHtml = sanitizeHtml(bodyHtml, showImages);
+
+      // Debug logging
+      console.log('[MessageBody] Original HTML length:', bodyHtml.length);
+      console.log('[MessageBody] Sanitized HTML length:', sanitizedHtml.length);
+      console.log('[MessageBody] Original HTML preview:', bodyHtml.substring(0, 500));
+      console.log('[MessageBody] Sanitized HTML preview:', sanitizedHtml.substring(0, 500));
+
       return (
         <>
           <div
