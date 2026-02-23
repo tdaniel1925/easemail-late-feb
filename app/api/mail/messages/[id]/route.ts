@@ -2,6 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
+ * Helper function to parse recipient data from database
+ * Handles JSON strings, arrays, and validates structure
+ */
+function parseRecipients(recipients: any): any[] {
+  if (!recipients) return [];
+
+  try {
+    let parsed = recipients;
+
+    // Handle JSON strings
+    if (typeof recipients === 'string') {
+      parsed = JSON.parse(recipients);
+    }
+
+    // Ensure we have an array
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed;
+  } catch (e) {
+    console.error('Error parsing recipients:', e);
+    return [];
+  }
+}
+
+/**
  * GET /api/mail/messages/[id]
  * Get a single message with full details
  *
@@ -15,11 +42,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const messageId = params.id;
+    const { id: messageId } = await params;
 
     if (!messageId) {
       return NextResponse.json(
@@ -94,10 +121,10 @@ export async function GET(
       },
 
       // Recipients
-      to: message.to_recipients || [],
-      cc: message.cc_recipients || [],
-      bcc: message.bcc_recipients || [],
-      reply_to: message.reply_to || [],
+      to: parseRecipients(message.to_recipients),
+      cc: parseRecipients(message.cc_recipients),
+      bcc: parseRecipients(message.bcc_recipients),
+      reply_to: parseRecipients(message.reply_to),
 
       // Body
       body: {
@@ -157,11 +184,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const messageId = params.id;
+    const { id: messageId } = await params;
     const body = await request.json();
 
     if (!messageId) {
@@ -250,11 +277,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const messageId = params.id;
+    const { id: messageId } = await params;
 
     if (!messageId) {
       return NextResponse.json(

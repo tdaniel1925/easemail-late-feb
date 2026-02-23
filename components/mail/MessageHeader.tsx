@@ -59,6 +59,19 @@ export function MessageHeader({
     }
   };
 
+  const getRecipientDisplay = (r: any): string => {
+    // Handle different recipient formats defensively
+    if (!r) return 'Unknown';
+    return (
+      r?.emailAddress?.name ||
+      r?.emailAddress?.address ||
+      r?.name ||
+      r?.address ||
+      r?.email ||
+      'Unknown'
+    );
+  };
+
   const toList = formatRecipients(toRecipients);
   const ccList = formatRecipients(ccRecipients);
 
@@ -181,16 +194,16 @@ export function MessageHeader({
                 <>
                   {showAllTo ? (
                     <span>
-                      {toList.map((r: Recipient, i: number) => (
+                      {toList.map((r: any, i: number) => (
                         <span key={i}>
-                          {r.emailAddress.name || r.emailAddress.address}
+                          {getRecipientDisplay(r)}
                           {i < toList.length - 1 ? ", " : ""}
                         </span>
                       ))}
                     </span>
                   ) : (
                     <>
-                      <span>{toList[0]?.emailAddress?.name || toList[0]?.emailAddress?.address}</span>
+                      <span>{getRecipientDisplay(toList[0])}</span>
                       {toList.length > 1 && (
                         <button
                           onClick={() => setShowAllTo(true)}
@@ -223,9 +236,9 @@ export function MessageHeader({
             {showCc && ccList.length > 0 && (
               <div className="mt-1 text-xs text-text-secondary">
                 <span>cc: </span>
-                {ccList.map((r: Recipient, i: number) => (
+                {ccList.map((r: any, i: number) => (
                   <span key={i}>
-                    {r.emailAddress.name || r.emailAddress.address}
+                    {getRecipientDisplay(r)}
                     {i < ccList.length - 1 ? ", " : ""}
                   </span>
                 ))}

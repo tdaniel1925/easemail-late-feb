@@ -50,7 +50,8 @@ export function useKeyboardShortcuts() {
       }
 
       // Reply shortcuts (only if a message is viewed)
-      if (viewedMessageId) {
+      // IMPORTANT: Don't intercept when Ctrl/Cmd is pressed (e.g., Ctrl+Shift+R for browser refresh)
+      if (viewedMessageId && !e.ctrlKey && !e.metaKey) {
         if (e.key === "r" && !e.shiftKey) {
           e.preventDefault();
           openComposer("reply", viewedMessageId);

@@ -83,6 +83,8 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
           style={{
             fontSize: "13px",
             lineHeight: "1.5",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
           }}
         />
       );
@@ -90,15 +92,18 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress }: Me
 
     if (bodyText) {
       return (
-        <pre
-          className="whitespace-pre-wrap font-mono text-xs text-text-primary"
+        <div
+          className="whitespace-pre-wrap text-text-primary"
           style={{
             fontSize: "13px",
             lineHeight: "1.5",
+            wordBreak: "break-word",
+            overflowWrap: "break-word",
+            fontFamily: "inherit",
           }}
         >
           {bodyText}
-        </pre>
+        </div>
       );
     }
 

@@ -11,6 +11,25 @@ interface GraphFolder {
   isHidden: boolean;
 }
 
+/**
+ * Determine folder type based on display name
+ * Maps Microsoft's well-known folder names to our folder_type enum
+ */
+function getFolderType(displayName: string): string {
+  const normalizedName = displayName.toLowerCase();
+
+  if (normalizedName === 'inbox') return 'inbox';
+  if (normalizedName === 'drafts') return 'drafts';
+  if (normalizedName === 'sent items' || normalizedName === 'sent') return 'sentitems';
+  if (normalizedName === 'deleted items' || normalizedName === 'trash') return 'deleteditems';
+  if (normalizedName === 'archive') return 'archive';
+  if (normalizedName === 'junk email' || normalizedName === 'spam') return 'junkemail';
+  if (normalizedName === 'outbox') return 'outbox';
+
+  // All other folders are custom
+  return 'custom';
+}
+
 interface FolderSyncResult {
   synced: number;
   created: number;
@@ -78,6 +97,7 @@ export class FolderSyncService {
                 .from('account_folders')
                 .update({
                   display_name: graphFolder.displayName,
+                  folder_type: getFolderType(graphFolder.displayName),
                   parent_graph_id: graphFolder.parentFolderId || null,
                   unread_count: graphFolder.unreadItemCount,
                   total_count: graphFolder.totalItemCount,
@@ -101,6 +121,7 @@ export class FolderSyncService {
                 account_id: this.accountId,
                 graph_id: graphFolder.id,
                 display_name: graphFolder.displayName,
+                folder_type: getFolderType(graphFolder.displayName),
                 parent_graph_id: graphFolder.parentFolderId || null,
                 unread_count: graphFolder.unreadItemCount,
                 total_count: graphFolder.totalItemCount,

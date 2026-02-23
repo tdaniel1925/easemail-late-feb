@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all folders for the account
+    // Get all folders for the account (excluding hidden)
     const { data: folders, error: foldersError } = await supabase
       .from('account_folders')
       .select('*')
       .eq('account_id', accountId)
+      .is('is_hidden', false)
       .order('display_name');
 
     if (foldersError) {

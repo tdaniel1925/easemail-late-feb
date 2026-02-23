@@ -98,7 +98,49 @@ export function Composer({ open, onClose }: ComposerProps) {
               },
             ]);
           }
-          // TODO: Parse and add CC recipients from originalMessage.cc_recipients
+
+          // Parse and add CC recipients from original message
+          const ccRecipients: Recipient[] = [];
+
+          // Add original TO recipients (excluding current user)
+          try {
+            const toList = typeof originalMessage.to_recipients === 'string'
+              ? JSON.parse(originalMessage.to_recipients)
+              : originalMessage.to_recipients;
+
+            if (Array.isArray(toList)) {
+              toList.forEach((r: any) => {
+                const email = r?.emailAddress?.address || r?.address || r?.email;
+                const name = r?.emailAddress?.name || r?.name;
+                if (email) {
+                  ccRecipients.push({ email, name });
+                }
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing to_recipients:', e);
+          }
+
+          // Add original CC recipients
+          try {
+            const ccList = typeof originalMessage.cc_recipients === 'string'
+              ? JSON.parse(originalMessage.cc_recipients)
+              : originalMessage.cc_recipients;
+
+            if (Array.isArray(ccList)) {
+              ccList.forEach((r: any) => {
+                const email = r?.emailAddress?.address || r?.address || r?.email;
+                const name = r?.emailAddress?.name || r?.name;
+                if (email) {
+                  ccRecipients.push({ email, name });
+                }
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing cc_recipients:', e);
+          }
+
+          setCc(ccRecipients);
           setShowCc(true);
           setSubject(
             originalMessage.subject?.startsWith("Re:")
@@ -112,11 +154,24 @@ export function Composer({ open, onClose }: ComposerProps) {
               ? originalMessage.subject
               : `Fwd: ${originalMessage.subject || ""}`
           );
-          // TODO: Include original message body in editor
+
+          // Include original message body
+          const forwardedContent = `
+            <br><br>
+            <div style="border-left: 2px solid #ccc; padding-left: 12px; margin-left: 8px;">
+              <p style="font-size: 11px; color: #666; margin-bottom: 8px;">
+                <strong>From:</strong> ${originalMessage.from_name || originalMessage.from_address}<br>
+                <strong>Sent:</strong> ${originalMessage.received_at ? new Date(originalMessage.received_at).toLocaleString() : ''}<br>
+                <strong>Subject:</strong> ${originalMessage.subject || '(No subject)'}
+              </p>
+              ${originalMessage.body_html || originalMessage.body_text || ''}
+            </div>
+          `;
+          editor?.commands.setContent(forwardedContent);
         }
       }
     }
-  }, [open, mode, originalMessageId, getMessageById]);
+  }, [open, mode, originalMessageId, getMessageById, editor]);
 
   // Reset form when closed
   useEffect(() => {

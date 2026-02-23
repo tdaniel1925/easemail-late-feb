@@ -13,14 +13,18 @@ interface FullMessage {
   account_id: string;
   graph_id: string;
   subject: string | null;
-  from_name: string | null;
-  from_address: string | null;
-  to_recipients: any;
-  cc_recipients: any;
-  bcc_recipients: any;
-  body_html: string | null;
-  body_text: string | null;
-  body_content_type: string | null;
+  from: {
+    name: string | null;
+    address: string | null;
+  };
+  to: any[];
+  cc: any[];
+  bcc: any[];
+  body: {
+    html: string | null;
+    text: string | null;
+    content_type: string | null;
+  };
   received_at: string | null;
   is_read: boolean | null;
   is_flagged: boolean | null;
@@ -58,10 +62,23 @@ export function MessageViewer() {
       }
 
       const data = await response.json();
-      setMessage(data.message);
+
+      // Debug logging to verify data structure
+      console.log('[MessageViewer] Message loaded:', {
+        id: data.id,
+        subject: data.subject,
+        toStructure: data.to?.[0],
+        ccStructure: data.cc?.[0],
+        hasAttachments: data.has_attachments,
+        attachmentCount: data.attachments?.length,
+        bodyHtmlLength: data.body?.html?.length,
+        bodyTextLength: data.body?.text?.length,
+      });
+
+      setMessage(data);
 
       // Mark as read if unread
-      if (data.message && !data.message.is_read) {
+      if (data && !data.is_read) {
         markAsRead(messageId);
       }
     } catch (err: any) {
@@ -243,35 +260,39 @@ export function MessageViewer() {
 
   // Message viewer
   return (
-    <div className="flex h-full flex-col bg-surface-primary">
-      <MessageHeader
-        fromName={message.from_name}
-        fromAddress={message.from_address}
-        toRecipients={message.to_recipients}
-        ccRecipients={message.cc_recipients}
-        subject={message.subject}
-        receivedAt={message.received_at}
-        isFlagged={message.is_flagged}
-        categories={message.categories}
-        importance={message.importance}
-        onReply={handleReply}
-        onReplyAll={handleReplyAll}
-        onForward={handleForward}
-        onArchive={handleArchive}
-        onDelete={handleDelete}
-        onToggleFlag={handleToggleFlag}
-      />
+    <div className="flex h-full flex-col overflow-hidden bg-surface-primary">
+      <div className="flex-shrink-0">
+        <MessageHeader
+          fromName={message.from.name}
+          fromAddress={message.from.address}
+          toRecipients={message.to}
+          ccRecipients={message.cc}
+          subject={message.subject}
+          receivedAt={message.received_at}
+          isFlagged={message.is_flagged}
+          categories={message.categories}
+          importance={message.importance}
+          onReply={handleReply}
+          onReplyAll={handleReplyAll}
+          onForward={handleForward}
+          onArchive={handleArchive}
+          onDelete={handleDelete}
+          onToggleFlag={handleToggleFlag}
+        />
 
-      {message.has_attachments && message.attachments && (
-        <AttachmentList attachments={message.attachments} messageId={message.id} />
-      )}
+        {message.has_attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
+          <AttachmentList attachments={message.attachments} messageId={message.id} />
+        )}
+      </div>
 
-      <MessageBody
-        bodyHtml={message.body_html}
-        bodyText={message.body_text}
-        contentType={message.body_content_type}
-        fromAddress={message.from_address}
-      />
+      <div className="flex-1 overflow-hidden">
+        <MessageBody
+          bodyHtml={message.body.html}
+          bodyText={message.body.text}
+          contentType={message.body.content_type}
+          fromAddress={message.from.address}
+        />
+      </div>
     </div>
   );
 }

@@ -240,16 +240,17 @@ export function FolderTree({ accountId }: FolderTreeProps) {
   const systemFolders = rootFolders.filter(
     (f) =>
       f.folder_type &&
-      ["inbox", "sent", "drafts", "deleted", "archive"].includes(f.folder_type)
+      ["inbox", "sentitems", "drafts", "deleteditems", "archive"].includes(f.folder_type)
   );
+  // Custom folders are ONLY those with folder_type='custom' or null (excluding system types)
   const customFolders = rootFolders.filter(
     (f) =>
-      !f.folder_type ||
-      !["inbox", "sent", "drafts", "deleted", "archive"].includes(f.folder_type)
+      f.folder_type === "custom" ||
+      (!f.folder_type && !["inbox", "sentitems", "drafts", "deleteditems", "archive", "junkemail", "outbox"].includes(f.display_name.toLowerCase().replace(' ', '')))
   );
 
   // Sort system folders in specific order
-  const systemFolderOrder = ["inbox", "drafts", "sent", "archive", "deleted"];
+  const systemFolderOrder = ["inbox", "drafts", "sentitems", "archive", "deleteditems"];
   systemFolders.sort((a, b) => {
     const aIndex = systemFolderOrder.indexOf(a.folder_type || "");
     const bIndex = systemFolderOrder.indexOf(b.folder_type || "");

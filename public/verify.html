@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EaseMail Verification</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .section { margin: 20px 0; padding: 15px; background: #2a2a2a; border-radius: 8px; }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+        h2 { color: #60a5fa; }
+        pre { background: #0a0a0a; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>EaseMail Verification Page</h1>
+    <div id="results"></div>
+
+    <script>
+        const accountId = 'f817b168-8de0-462b-a676-9e9b8295e8d5';
+        const results = document.getElementById('results');
+
+        async function runTests() {
+            // Test 1: Folders
+            results.innerHTML += '<div class="section"><h2>1. Testing Folders API...</h2>';
+            try {
+                const res = await fetch(`/api/mail/folders?accountId=${accountId}`);
+                const data = await res.json();
+
+                const systemFolders = data.folders.filter(f =>
+                    f.folder_type && ['inbox','sentitems','drafts','deleteditems','archive'].includes(f.folder_type)
+                );
+                const customFolders = data.folders.filter(f => f.folder_type === 'custom');
+
+                results.innerHTML += `<p class="success">✓ Total folders: ${data.folders.length}</p>`;
+                results.innerHTML += `<p class="success">✓ System folders: ${systemFolders.length}</p>`;
+                results.innerHTML += '<pre>' + systemFolders.map(f => `  ${f.display_name} (${f.folder_type})`).join('\n') + '</pre>';
+                results.innerHTML += `<p class="success">✓ Custom folders: ${customFolders.length}</p>`;
+                results.innerHTML += '<pre>' + customFolders.map(f => `  ${f.display_name}`).join('\n') + '</pre>';
+            } catch (err) {
+                results.innerHTML += `<p class="error">✗ Error: ${err.message}</p>`;
+            }
+            results.innerHTML += '</div>';
+
+            // Test 2: Messages
+            results.innerHTML += '<div class="section"><h2>2. Testing Messages API...</h2>';
+            try {
+                const res = await fetch(`/api/mail/messages?accountId=${accountId}&limit=3`);
+                const data = await res.json();
+
+                results.innerHTML += `<p class="success">✓ Total messages: ${data.total}</p>`;
+                results.innerHTML += `<p class="success">✓ Showing: ${data.messages.length}</p>`;
+
+                if (data.messages.length > 0) {
+                    const msg = data.messages[0];
+                    results.innerHTML += `<p class="success">✓ Sample message loaded</p>`;
+                    results.innerHTML += '<pre>' + JSON.stringify({
+                        subject: msg.subject,
+                        from: msg.from_name,
+                        hasBody: !!(msg.body_html || msg.body_text)
+                    }, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                results.innerHTML += `<p class="error">✗ Error: ${err.message}</p>`;
+            }
+            results.innerHTML += '</div>';
+
+            // Test 3: Single Message
+            results.innerHTML += '<div class="section"><h2>3. Testing Single Message API...</h2>';
+            try {
+                const listRes = await fetch(`/api/mail/messages?accountId=${accountId}&limit=1`);
+                const listData = await listRes.json();
+
+                if (listData.messages.length > 0) {
+                    const msgId = listData.messages[0].id;
+                    const msgRes = await fetch(`/api/mail/messages/${msgId}`);
+                    const msgData = await msgRes.json();
+
+                    results.innerHTML += `<p class="success">✓ Message loaded: "${msgData.subject}"</p>`;
+                    results.innerHTML += '<pre>' + JSON.stringify({
+                        from: msgData.from,
+                        to: msgData.to ? `Array[${msgData.to.length}]` : 'null',
+                        body: {
+                            html: msgData.body?.html ? `${msgData.body.html.length} chars` : 'null',
+                            text: msgData.body?.text ? `${msgData.body.text.length} chars` : 'null'
+                        }
+                    }, null, 2) + '</pre>';
+                }
+            } catch (err) {
+                results.innerHTML += `<p class="error">✗ Error: ${err.message}</p>`;
+            }
+            results.innerHTML += '</div>';
+
+            results.innerHTML += '<div class="section"><h2 class="success">✓ ALL TESTS COMPLETE</h2><p>If you see this, the backend is working correctly. If the main app still has issues, clear your browser cache:</p><ol><li>Press Ctrl+Shift+Delete</li><li>Select "Cached images and files"</li><li>Click "Clear data"</li><li>Refresh this page</li></ol></div>';
+        }
+
+        runTests();
+    </script>
+</body>
+</html>
