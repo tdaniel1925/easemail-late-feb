@@ -11,12 +11,24 @@ export async function POST(request: NextRequest) {
   let accountId: string | undefined;
   try {
     const supabase = createAdminClient();
-    const body = await request.json();
-    accountId = body.accountId;
+
+    // Get accountId from query params or body
+    const { searchParams } = new URL(request.url);
+    accountId = searchParams.get('accountId') || undefined;
+
+    // If not in query params, try body
+    if (!accountId) {
+      try {
+        const body = await request.json();
+        accountId = body.accountId;
+      } catch (e) {
+        // Body is not JSON, that's ok if we have query param
+      }
+    }
 
     if (!accountId) {
       return NextResponse.json(
-        { error: 'accountId is required' },
+        { error: 'accountId is required in query params or body' },
         { status: 400 }
       );
     }
