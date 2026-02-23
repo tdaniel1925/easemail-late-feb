@@ -140,10 +140,17 @@ export function FolderTree({ accountId }: FolderTreeProps) {
         >
           {/* Collapse/expand chevron for folders with children */}
           {hasChildren ? (
-            <button
+            <span
               onClick={(e) => handleToggleCollapse(e, folder.id)}
-              className="flex-shrink-0"
+              className="flex-shrink-0 cursor-pointer"
+              role="button"
+              tabIndex={0}
               aria-label={isCollapsed ? "Expand folder" : "Collapse folder"}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleToggleCollapse(e, folder.id);
+                }
+              }}
             >
               {isCollapsed ? (
                 <ChevronRight
@@ -158,7 +165,7 @@ export function FolderTree({ accountId }: FolderTreeProps) {
                   strokeWidth={1.5}
                 />
               )}
-            </button>
+            </span>
           ) : (
             <div className="w-3" /> // Spacer for alignment
           )}
