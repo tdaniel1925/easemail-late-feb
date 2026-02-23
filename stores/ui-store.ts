@@ -36,7 +36,7 @@ export const useUIStore = create<UIState>()(
       density: "comfortable",
       readingPanePosition: "right",
       defaultAccountId: null,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: "UTC", // Will be set to user's timezone on client mount
       dateFormat: "MM/DD/YYYY",
       notificationsEnabled: true,
       soundEnabled: false,

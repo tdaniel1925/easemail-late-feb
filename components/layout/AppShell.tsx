@@ -9,6 +9,7 @@ import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
 import { useComposerStore } from "@/stores/composer-store";
 import { useSearchStore } from "@/stores/search-store";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useInitializeApp } from "@/hooks/useInitializeApp";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -18,6 +19,9 @@ export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isOpen, closeComposer, openComposer } = useComposerStore();
   const { openSearch } = useSearchStore();
+
+  // Initialize app settings
+  useInitializeApp();
 
   // Global keyboard shortcuts
   useKeyboardShortcuts();

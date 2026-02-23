@@ -59,6 +59,7 @@ export function Composer({ open, onClose }: ComposerProps) {
       }),
     ],
     content: "",
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: "prose prose-sm max-w-none focus:outline-none text-text-primary",
