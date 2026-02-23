@@ -1,7 +1,253 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-interface MailState {
-  // Mail store will be implemented in Agent 5
+export interface Folder {
+  id: string;
+  account_id: string;
+  graph_id: string;
+  display_name: string;
+  folder_type: string | null;
+  parent_graph_id: string | null;
+  unread_count: number | null;
+  total_count: number | null;
+  is_hidden: boolean | null;
+  is_favorite: boolean | null;
+  sort_order: number | null;
+  last_synced_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-export const useMailStore = create<MailState>(() => ({}));
+export interface Message {
+  id: string;
+  account_id: string;
+  folder_id: string;
+  graph_id: string;
+  subject: string | null;
+  from_name: string | null;
+  from_address: string | null;
+  to_recipients: any;
+  cc_recipients: any;
+  bcc_recipients: any;
+  preview: string | null;
+  body_html: string | null;
+  body_text: string | null;
+  body_content_type: string | null;
+  received_at: string | null;
+  sent_at: string | null;
+  is_read: boolean | null;
+  is_flagged: boolean | null;
+  is_draft: boolean | null;
+  is_deleted: boolean | null;
+  has_attachments: boolean | null;
+  attachment_count: number | null;
+  importance: string | null;
+  categories: string[] | null;
+  conversation_id: string | null;
+  ai_summary: string | null;
+  ai_category: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+interface MailState {
+  // Folders
+  folders: Folder[];
+  selectedFolderId: string | null;
+  collapsedFolders: Set<string>;
+  isLoadingFolders: boolean;
+  foldersError: string | null;
+
+  // Messages
+  messages: Message[];
+  selectedMessageIds: Set<string>;
+  viewedMessageId: string | null;
+  isLoadingMessages: boolean;
+  messagesError: string | null;
+  messagePage: number;
+  messageTotal: number;
+  hasMoreMessages: boolean;
+
+  // Folder Actions
+  setFolders: (folders: Folder[]) => void;
+  setSelectedFolder: (folderId: string | null) => void;
+  toggleFolderCollapse: (folderId: string) => void;
+  setLoadingFolders: (isLoading: boolean) => void;
+  setFoldersError: (error: string | null) => void;
+  updateFolder: (folderId: string, updates: Partial<Folder>) => void;
+
+  // Message Actions
+  setMessages: (messages: Message[]) => void;
+  appendMessages: (messages: Message[]) => void;
+  toggleMessageSelection: (messageId: string) => void;
+  selectMessage: (messageId: string) => void;
+  selectAllMessages: () => void;
+  clearMessageSelection: () => void;
+  setViewedMessage: (messageId: string | null) => void;
+  setLoadingMessages: (isLoading: boolean) => void;
+  setMessagesError: (error: string | null) => void;
+  updateMessage: (messageId: string, updates: Partial<Message>) => void;
+  setMessagePage: (page: number) => void;
+  setMessageTotal: (total: number) => void;
+  setHasMoreMessages: (hasMore: boolean) => void;
+
+  // Folder Getters
+  getSelectedFolder: () => Folder | null;
+  getFolderById: (folderId: string) => Folder | null;
+  getChildFolders: (parentGraphId: string | null) => Folder[];
+  getRootFolders: () => Folder[];
+
+  // Message Getters
+  getSelectedMessages: () => Message[];
+  getMessageById: (messageId: string) => Message | null;
+  getViewedMessage: () => Message | null;
+}
+
+export const useMailStore = create<MailState>()(
+  persist(
+    (set, get) => ({
+      // Folder state
+      folders: [],
+      selectedFolderId: null,
+      collapsedFolders: new Set(),
+      isLoadingFolders: false,
+      foldersError: null,
+
+      // Message state
+      messages: [],
+      selectedMessageIds: new Set(),
+      viewedMessageId: null,
+      isLoadingMessages: false,
+      messagesError: null,
+      messagePage: 1,
+      messageTotal: 0,
+      hasMoreMessages: false,
+
+      // Folder actions
+      setFolders: (folders) => set({ folders }),
+
+      setSelectedFolder: (folderId) => set({ selectedFolderId: folderId }),
+
+      toggleFolderCollapse: (folderId) =>
+        set((state) => {
+          const newCollapsed = new Set(state.collapsedFolders);
+          if (newCollapsed.has(folderId)) {
+            newCollapsed.delete(folderId);
+          } else {
+            newCollapsed.add(folderId);
+          }
+          return { collapsedFolders: newCollapsed };
+        }),
+
+      setLoadingFolders: (isLoading) => set({ isLoadingFolders: isLoading }),
+
+      setFoldersError: (error) => set({ foldersError: error }),
+
+      updateFolder: (folderId, updates) =>
+        set((state) => ({
+          folders: state.folders.map((folder) =>
+            folder.id === folderId ? { ...folder, ...updates } : folder
+          ),
+        })),
+
+      // Message actions
+      setMessages: (messages) => set({ messages, selectedMessageIds: new Set() }),
+
+      appendMessages: (messages) =>
+        set((state) => ({
+          messages: [...state.messages, ...messages],
+        })),
+
+      toggleMessageSelection: (messageId) =>
+        set((state) => {
+          const newSelection = new Set(state.selectedMessageIds);
+          if (newSelection.has(messageId)) {
+            newSelection.delete(messageId);
+          } else {
+            newSelection.add(messageId);
+          }
+          return { selectedMessageIds: newSelection };
+        }),
+
+      selectMessage: (messageId) =>
+        set({ selectedMessageIds: new Set([messageId]) }),
+
+      selectAllMessages: () =>
+        set((state) => ({
+          selectedMessageIds: new Set(state.messages.map((m) => m.id)),
+        })),
+
+      clearMessageSelection: () => set({ selectedMessageIds: new Set() }),
+
+      setViewedMessage: (messageId) => set({ viewedMessageId: messageId }),
+
+      setLoadingMessages: (isLoading) => set({ isLoadingMessages: isLoading }),
+
+      setMessagesError: (error) => set({ messagesError: error }),
+
+      updateMessage: (messageId, updates) =>
+        set((state) => ({
+          messages: state.messages.map((msg) =>
+            msg.id === messageId ? { ...msg, ...updates } : msg
+          ),
+        })),
+
+      setMessagePage: (page) => set({ messagePage: page }),
+
+      setMessageTotal: (total) => set({ messageTotal: total }),
+
+      setHasMoreMessages: (hasMore) => set({ hasMoreMessages: hasMore }),
+
+      // Folder getters
+      getSelectedFolder: () => {
+        const state = get();
+        return state.folders.find((f) => f.id === state.selectedFolderId) || null;
+      },
+
+      getFolderById: (folderId) => {
+        const state = get();
+        return state.folders.find((f) => f.id === folderId) || null;
+      },
+
+      getChildFolders: (parentGraphId) => {
+        const state = get();
+        return state.folders.filter((f) => f.parent_graph_id === parentGraphId);
+      },
+
+      getRootFolders: () => {
+        const state = get();
+        return state.folders.filter((f) => !f.parent_graph_id);
+      },
+
+      // Message getters
+      getSelectedMessages: () => {
+        const state = get();
+        return state.messages.filter((m) => state.selectedMessageIds.has(m.id));
+      },
+
+      getMessageById: (messageId) => {
+        const state = get();
+        return state.messages.find((m) => m.id === messageId) || null;
+      },
+
+      getViewedMessage: () => {
+        const state = get();
+        if (!state.viewedMessageId) return null;
+        return state.messages.find((m) => m.id === state.viewedMessageId) || null;
+      },
+    }),
+    {
+      name: 'easemail-mail-storage',
+      partialize: (state) => ({
+        selectedFolderId: state.selectedFolderId,
+        collapsedFolders: Array.from(state.collapsedFolders),
+      }),
+      // Handle Set serialization
+      merge: (persistedState: any, currentState) => ({
+        ...currentState,
+        ...persistedState,
+        collapsedFolders: new Set(persistedState?.collapsedFolders || []),
+      }),
+    }
+  )
+);

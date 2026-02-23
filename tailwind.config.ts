@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 const config: Config = {
   darkMode: ["class"],
@@ -18,7 +19,12 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['var(--font-geist-sans)', ...defaultTheme.fontFamily.sans],
+        mono: ['var(--font-geist-mono)', ...defaultTheme.fontFamily.mono],
+      },
       colors: {
+        // Shadcn compatibility
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -41,8 +47,10 @@ const config: Config = {
           foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: '#FF7F50',
+          hover: '#FF6B3D',
+          subtle: '#FFF5F0',
+          text: '#E5623D',
         },
         popover: {
           DEFAULT: "hsl(var(--popover))",
@@ -52,11 +60,35 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        surface: {
+          primary: 'hsl(var(--bg-primary))',
+          secondary: 'hsl(var(--bg-secondary))',
+          tertiary: 'hsl(var(--bg-tertiary))',
+          elevated: 'hsl(var(--bg-elevated))',
+          selected: 'hsl(var(--bg-selected))',
+          hover: 'hsl(var(--bg-hover))',
+        },
+        text: {
+          primary: 'hsl(var(--text-primary))',
+          secondary: 'hsl(var(--text-secondary))',
+          tertiary: 'hsl(var(--text-tertiary))',
+          inverse: 'hsl(var(--text-inverse))',
+        },
+      },
+      boxShadow: {
+        'sm': '0 1px 2px rgba(0, 0, 0, 0.04)',
+        'md': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'lg': '0 4px 16px rgba(0, 0, 0, 0.12)',
+        'xl': '0 8px 32px rgba(0, 0, 0, 0.16)',
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        'sm': '4px',
+        'md': '6px',
+        'lg': '8px',
+        'xl': '12px',
+      },
+      transitionTimingFunction: {
+        'ease-out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
         "accordion-down": {
@@ -67,10 +99,15 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        "pulse-opacity": {
+          '0%, 100%': { opacity: '0.5' },
+          '50%': { opacity: '1' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-opacity": "pulse-opacity 1.5s ease-in-out infinite",
       },
       spacing: {
         '0': '0px',

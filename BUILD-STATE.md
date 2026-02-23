@@ -41,16 +41,16 @@
 | 4.7 | Contacts API | ✅ | ✅ PASSED | 2026-02-22 |
 | 4.8 | Account Management API | ✅ | ✅ PASSED | 2026-02-22 |
 | CP4 | **MANUAL CHECKPOINT 4** | ⬜ | ⬜ | |
-| 5.1 | App Layout Shell | ⬜ | ⬜ | |
-| 5.2 | Account Switcher | ⬜ | ⬜ | |
-| 5.3 | Folder Tree | ⬜ | ⬜ | |
-| 5.4 | Message List | ⬜ | ⬜ | |
-| 5.5 | Message Viewer | ⬜ | ⬜ | |
-| 5.6 | Composer | ⬜ | ⬜ | |
-| 5.7 | Search UI | ⬜ | ⬜ | |
-| 5.8 | Settings Pages | ⬜ | ⬜ | |
-| 5.9 | Notifications & Toasts | ⬜ | ⬜ | |
-| 5.10 | Keyboard Shortcuts | ⬜ | ⬜ | |
+| 5.1 | App Layout Shell | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.2 | Account Switcher | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.3 | Folder Tree | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.4 | Message List | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.5 | Message Viewer | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.6 | Composer | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.7 | Search UI | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.8 | Settings Pages | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.9 | Notifications & Toasts | ✅ | ✅ PASSED | 2026-02-22 |
+| 5.10 | Keyboard Shortcuts | ✅ | ✅ PASSED | 2026-02-22 |
 | CP5 | **MANUAL CHECKPOINT 5** | ⬜ | ⬜ | |
 | 6.1 | AI Service Core | ⬜ | ⬜ | |
 | 6.2 | Email Drafting | ⬜ | ⬜ | |

@@ -1,2 +1,13 @@
-// Mail components - will be implemented in Agent 5
-export {};
+export { AccountSwitcher } from "./AccountSwitcher";
+export { FolderTree } from "./FolderTree";
+export { MessageList } from "./MessageList";
+export { MessageListItem } from "./MessageListItem";
+export { MessageListToolbar } from "./MessageListToolbar";
+export { MessageViewer } from "./MessageViewer";
+export { MessageHeader } from "./MessageHeader";
+export { MessageBody } from "./MessageBody";
+export { AttachmentList } from "./AttachmentList";
+export { Composer } from "./Composer";
+export { ComposerToolbar } from "./ComposerToolbar";
+export { RecipientInput } from "./RecipientInput";
+export { SearchModal } from "./SearchModal";
