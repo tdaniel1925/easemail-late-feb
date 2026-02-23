@@ -18,7 +18,6 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const hydrated = useHydrated();
   const { isOpen, closeComposer, openComposer } = useComposerStore();
   const { openSearch } = useSearchStore();
 
@@ -27,19 +26,6 @@ export function AppShell({ children }: AppShellProps) {
 
   // Global keyboard shortcuts
   useKeyboardShortcuts();
-
-  if (!hydrated) {
-    // Return a loading skeleton during SSR/hydration to prevent mismatch
-    return (
-      <div className="flex h-screen w-screen overflow-hidden bg-surface-primary">
-        <div className="w-60 border-r border-border-default bg-surface-secondary" />
-        <div className="flex flex-1 flex-col">
-          <div className="h-14 border-b border-border-default bg-surface-primary" />
-          <div className="flex-1" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-surface-primary">
