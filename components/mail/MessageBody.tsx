@@ -175,17 +175,6 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
     if (bodyHtml) {
       const sanitizedHtml = sanitizeHtml(bodyHtml, showImages);
 
-      // Debug logging - use console.error to make it very visible
-      console.error('===== EMAIL CONTENT DEBUG =====');
-      console.error('[MessageBody] Original HTML length:', bodyHtml.length);
-      console.error('[MessageBody] Sanitized HTML length:', sanitizedHtml.length);
-      console.error('[MessageBody] showImages:', showImages);
-      console.error('[MessageBody] attachments count:', attachments.length);
-      console.error('[MessageBody] Original HTML (first 1000 chars):\n', bodyHtml.substring(0, 1000));
-      console.error('[MessageBody] Sanitized HTML (first 1000 chars):\n', sanitizedHtml.substring(0, 1000));
-      console.error('[MessageBody] Original HTML (last 500 chars):\n', bodyHtml.substring(Math.max(0, bodyHtml.length - 500)));
-      console.error('===== END DEBUG =====');
-
       return (
         <>
           <div

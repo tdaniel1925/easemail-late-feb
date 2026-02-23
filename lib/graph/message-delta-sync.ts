@@ -107,8 +107,8 @@ export class MessageDeltaSyncService {
         ? `/me/mailFolders/${this.folderId}/messages/delta`
         : `/me/messages/delta`;
 
-      // Add $select to reduce payload size
-      deltaUrl += '?$select=id,conversationId,subject,bodyPreview,from,toRecipients,ccRecipients,sentDateTime,receivedDateTime,hasAttachments,importance,isRead,isDraft,flag,parentFolderId,internetMessageId,conversationIndex';
+      // Add $select to include full body content
+      deltaUrl += '?$select=id,conversationId,subject,bodyPreview,body,from,toRecipients,ccRecipients,bccRecipients,replyTo,sentDateTime,receivedDateTime,hasAttachments,importance,isRead,isDraft,flag,parentFolderId,internetMessageId,conversationIndex';
 
       // If we have a delta token, use it for incremental sync
       if (deltaToken) {
