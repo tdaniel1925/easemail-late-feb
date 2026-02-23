@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
-import { Mail, RefreshCw, Filter } from "lucide-react";
+import { useEffect, useCallback, useState } from "react";
+import { Mail, RefreshCw, Filter, CloudDownload } from "lucide-react";
 import { useMailStore } from "@/stores/mail-store";
 import { useAccountStore } from "@/stores/account-store";
 import { MessageListItem } from "./MessageListItem";
@@ -25,6 +25,7 @@ export function MessageList() {
   } = useMailStore();
 
   const { activeAccountId } = useAccountStore();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Fetch messages when account or folder changes
   useEffect(() => {
@@ -79,6 +80,31 @@ export function MessageList() {
 
   const handleRefresh = () => {
     fetchMessages();
+  };
+
+  const handleReSync = async () => {
+    if (!activeAccountId || isSyncing) return;
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`/api/sync/account?accountId=${activeAccountId}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to sync messages');
+      }
+
+      // Refresh messages after sync completes
+      await fetchMessages();
+      alert('Messages re-synced successfully with full content!');
+    } catch (err: any) {
+      console.error('Error syncing messages:', err);
+      alert(`Sync failed: ${err.message}`);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleSelectAll = () => {
@@ -194,6 +220,14 @@ export function MessageList() {
         </span>
 
         <div className="flex items-center gap-0.5">
+          <button
+            onClick={handleReSync}
+            disabled={isSyncing}
+            className="rounded p-1.5 transition-colors hover:bg-surface-tertiary disabled:opacity-50"
+            title="Re-Sync with Full Content"
+          >
+            <CloudDownload size={14} className={isSyncing ? "animate-pulse text-accent" : "text-text-secondary"} strokeWidth={1.5} />
+          </button>
           <button
             onClick={handleRefresh}
             className="rounded p-1.5 transition-colors hover:bg-surface-tertiary"
