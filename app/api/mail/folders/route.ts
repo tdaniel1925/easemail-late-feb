@@ -59,6 +59,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Edge case fallback: If no primary folders found for critical types, get any folder of that type
+    // This handles the case where all folders are accidentally marked as is_primary=false
+    if (!folders || folders.length === 0 || !folders.some(f => ['inbox', 'sentitems', 'drafts'].includes(f.folder_type))) {
+      const { data: fallbackFolders } = await supabase
+        .from('account_folders')
+        .select('*')
+        .eq('account_id', accountId)
+        .eq('tenant_id', user.tenant_id)
+        .is('is_hidden', false)
+        .in('folder_type', ['inbox', 'sentitems', 'drafts'])
+        .order('total_count DESC, display_name');
+
+      if (fallbackFolders && fallbackFolders.length > 0) {
+        console.warn(`⚠️  No primary folders found for critical types, using fallback for account ${accountId}`);
+
+        // Group by folder_type and take the first of each
+        const fallbackByType = fallbackFolders.reduce((acc, folder) => {
+          if (!acc[folder.folder_type]) {
+            acc[folder.folder_type] = folder;
+          }
+          return acc;
+        }, {} as Record<string, typeof fallbackFolders[0]>);
+
+        // Merge fallback folders with existing primary folders
+        const mergedFolders = [...(folders || [])];
+        Object.values(fallbackByType).forEach(fallbackFolder => {
+          if (!mergedFolders.some(f => f.folder_type === fallbackFolder.folder_type)) {
+            mergedFolders.push(fallbackFolder);
+          }
+        });
+
+        return NextResponse.json({
+          folders: mergedFolders.sort((a, b) => a.display_name.localeCompare(b.display_name)),
+          count: mergedFolders.length,
+        });
+      }
+    }
+
     return NextResponse.json({
       folders: folders || [],
       count: folders?.length || 0,

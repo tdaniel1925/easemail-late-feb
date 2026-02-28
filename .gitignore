@@ -34,6 +34,9 @@ Thumbs.db
 # Testing
 coverage/
 .nyc_output/
+/playwright/.auth/
+/test-results/
+/playwright-report/
 
 # Misc
 .turbo/
@@ -42,3 +45,4 @@ coverage/
 # POC environment variables
 pocs/.env
 pocs/.env.backup
+nul

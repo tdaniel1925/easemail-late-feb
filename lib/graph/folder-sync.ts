@@ -277,16 +277,18 @@ export class FolderSyncService {
   /**
    * Fix duplicate folders by marking the primary folder for each folder_type
    * For each account + folder_type combination, marks the folder with the most messages as primary
+   * Only considers visible (non-hidden) folders to avoid marking hidden folders as primary
    */
   private async fixDuplicateFolders(): Promise<void> {
     const supabase = createAdminClient();
 
     try {
-      // Get all folders for this account
+      // Get all visible folders for this account (exclude hidden folders)
       const { data: folders, error: fetchError } = await supabase
         .from('account_folders')
-        .select('id, folder_type, display_name, total_count, unread_count, created_at')
-        .eq('account_id', this.accountId);
+        .select('id, folder_type, display_name, total_count, unread_count, created_at, is_hidden')
+        .eq('account_id', this.accountId)
+        .is('is_hidden', false); // Only process visible folders
 
       if (fetchError) {
         console.error(`Failed to fetch folders for duplicate fix: ${fetchError.message}`);
@@ -296,6 +298,13 @@ export class FolderSyncService {
       if (!folders || folders.length === 0) {
         return;
       }
+
+      // Also mark any hidden folders as non-primary (safety measure)
+      await supabase
+        .from('account_folders')
+        .update({ is_primary: false })
+        .eq('account_id', this.accountId)
+        .eq('is_hidden', true);
 
       // Group folders by folder_type
       const foldersByType = new Map<string, typeof folders>();
