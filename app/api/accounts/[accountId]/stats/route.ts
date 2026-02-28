@@ -7,11 +7,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { accountId: string } }
+  { params }: { params: Promise<{ accountId: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const accountId = params.accountId;
+    const { accountId } = await params;
 
     if (!accountId) {
       return NextResponse.json(

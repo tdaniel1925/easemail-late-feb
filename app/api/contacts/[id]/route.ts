@@ -9,7 +9,7 @@ import { tokenService } from '@/lib/graph/token-service';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -17,7 +17,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const contactId = params.id;
+    const contactId = (await params).id;
     const supabase = await createClient();
 
     // Get contact and validate tenant access via connected_accounts join
@@ -60,7 +60,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -68,7 +68,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const contactId = params.id;
+    const contactId = (await params).id;
     const body = await request.json();
     const supabase = await createClient();
 
@@ -279,7 +279,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -287,7 +287,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const contactId = params.id;
+    const contactId = (await params).id;
     const supabase = await createClient();
 
     // Get contact from database

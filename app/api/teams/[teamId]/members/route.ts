@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,7 +18,7 @@ export async function GET(
     }
 
     const supabase = createAdminClient();
-    const { teamId } = params;
+    const { teamId } = await params;
 
     const { data: members, error } = await supabase
       .from('team_members')
@@ -38,7 +38,7 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -47,7 +47,7 @@ export async function POST(
     }
 
     const supabase = createAdminClient();
-    const { teamId } = params;
+    const { teamId } = await params;
     const { userId, role = 'member' } = await request.json();
 
     if (!userId) {

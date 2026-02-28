@@ -12,7 +12,7 @@ import { getGraphClient } from '@/lib/graph/client';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -21,7 +21,7 @@ export async function POST(
     }
 
     const supabase = await createClient();
-    const messageId = params.id;
+    const messageId = (await params).id;
     const body = await request.json();
     const { accountId, emoji } = body;
 
@@ -177,7 +177,7 @@ export async function POST(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -186,7 +186,7 @@ export async function DELETE(
     }
 
     const supabase = await createClient();
-    const messageId = params.id;
+    const messageId = (await params).id;
     const body = await request.json();
     const { accountId, emoji } = body;
 

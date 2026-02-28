@@ -8,11 +8,11 @@ import { createGraphClient } from '@/lib/graph/client';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const folderId = params.id;
+    const folderId = (await params).id;
 
     if (!folderId) {
       return NextResponse.json(
@@ -55,11 +55,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const folderId = params.id;
+    const folderId = (await params).id;
     const body = await request.json();
 
     if (!folderId) {
@@ -173,11 +173,11 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const folderId = params.id;
+    const folderId = (await params).id;
 
     if (!folderId) {
       return NextResponse.json(

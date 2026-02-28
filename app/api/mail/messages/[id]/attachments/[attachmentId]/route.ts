@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { GraphClient } from '@/lib/graph/client';
+import { createGraphClientWithToken } from '@/lib/graph/client';
 
 /**
  * GET /api/mail/messages/[id]/attachments/[attachmentId]
@@ -76,8 +76,7 @@ export async function GET(
     }
 
     // Initialize Graph client
-    const graphClient = new GraphClient(account.id, account.access_token);
-    const client = await graphClient.getAuthenticatedClient();
+    const client = createGraphClientWithToken(account.access_token);
 
     // Fetch attachment content from Graph API
     const graphAttachment = await client

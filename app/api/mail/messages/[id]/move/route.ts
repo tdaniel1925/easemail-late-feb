@@ -13,11 +13,11 @@ import { createGraphClient } from '@/lib/graph/client';
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = createAdminClient();
-    const messageId = params.id;
+    const messageId = (await params).id;
     const body = await request.json();
 
     if (!messageId) {

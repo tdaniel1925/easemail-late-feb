@@ -11,7 +11,7 @@ import { getGraphClient } from '@/lib/graph/client';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const supabase = await createClient();
-    const messageId = params.id;
+    const messageId = (await params).id;
     const accountId = request.nextUrl.searchParams.get('accountId');
 
     if (!accountId) {
@@ -114,7 +114,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -123,7 +123,7 @@ export async function POST(
     }
 
     const supabase = await createClient();
-    const messageId = params.id;
+    const messageId = (await params).id;
     const body = await request.json();
     const { accountId, content } = body;
 

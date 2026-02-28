@@ -200,15 +200,15 @@ export async function GET(request: NextRequest) {
         unread_count: 0,
       }));
 
-      await supabase.from('folders').insert(folderRows);
+      await supabase.from('account_folders').insert(folderRows);
     }
 
     // Create sync state record
+    // @ts-ignore - Type mismatch due to outdated generated types
     await supabase.from('sync_state').insert({
       account_id: newAccount.id,
       resource_type: 'messages',
-      status: 'pending',
-      next_sync_at: new Date().toISOString(),
+      sync_status: 'idle',
     });
 
     // Trigger initial sync via Inngest (if running)
