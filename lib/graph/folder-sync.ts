@@ -184,6 +184,9 @@ export class FolderSyncService {
           .eq('id', syncState.id);
       }
 
+      // Fix duplicate folders after sync (mark primary folders)
+      await this.fixDuplicateFolders();
+
       return result;
     } catch (error: any) {
       result.errors.push(`Folder sync failed: ${error.message}`);
@@ -268,6 +271,87 @@ export class FolderSyncService {
         return null;
       }
       throw new Error(`Failed to fetch folder ${msFolderId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Fix duplicate folders by marking the primary folder for each folder_type
+   * For each account + folder_type combination, marks the folder with the most messages as primary
+   */
+  private async fixDuplicateFolders(): Promise<void> {
+    const supabase = createAdminClient();
+
+    try {
+      // Get all folders for this account
+      const { data: folders, error: fetchError } = await supabase
+        .from('account_folders')
+        .select('id, folder_type, display_name, total_count, unread_count, created_at')
+        .eq('account_id', this.accountId);
+
+      if (fetchError) {
+        console.error(`Failed to fetch folders for duplicate fix: ${fetchError.message}`);
+        return;
+      }
+
+      if (!folders || folders.length === 0) {
+        return;
+      }
+
+      // Group folders by folder_type
+      const foldersByType = new Map<string, typeof folders>();
+      for (const folder of folders) {
+        const existing = foldersByType.get(folder.folder_type) || [];
+        existing.push(folder);
+        foldersByType.set(folder.folder_type, existing);
+      }
+
+      // Process each folder_type group
+      for (const [folderType, typeFolders] of foldersByType.entries()) {
+        if (typeFolders.length <= 1) {
+          // No duplicates, ensure single folder is marked as primary
+          await supabase
+            .from('account_folders')
+            .update({ is_primary: true })
+            .eq('id', typeFolders[0].id);
+          continue;
+        }
+
+        // Multiple folders of same type - mark the one with most messages as primary
+        // Sort by: total_count DESC, unread_count DESC, created_at ASC
+        const sorted = [...typeFolders].sort((a, b) => {
+          if (b.total_count !== a.total_count) {
+            return b.total_count - a.total_count;
+          }
+          if (b.unread_count !== a.unread_count) {
+            return b.unread_count - a.unread_count;
+          }
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        });
+
+        const primaryFolder = sorted[0];
+        const secondaryFolders = sorted.slice(1);
+
+        // Mark primary folder
+        await supabase
+          .from('account_folders')
+          .update({ is_primary: true })
+          .eq('id', primaryFolder.id);
+
+        console.log(`✅ Marked "${primaryFolder.display_name}" (${primaryFolder.total_count} messages) as primary ${folderType}`);
+
+        // Mark secondary folders
+        for (const secondaryFolder of secondaryFolders) {
+          await supabase
+            .from('account_folders')
+            .update({ is_primary: false })
+            .eq('id', secondaryFolder.id);
+
+          console.log(`   Marked "${secondaryFolder.display_name}" (${secondaryFolder.total_count} messages) as secondary`);
+        }
+      }
+    } catch (error: any) {
+      console.error(`Failed to fix duplicate folders: ${error.message}`);
+      // Don't throw - this is a cleanup operation, shouldn't fail the sync
     }
   }
 }

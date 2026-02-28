@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 
 /**
@@ -11,7 +11,12 @@ import { createGraphClient } from '@/lib/graph/client';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const accountId = request.nextUrl.searchParams.get('accountId');
 
     if (!accountId) {
@@ -21,11 +26,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists, is active, and belongs to the user's tenant
     const { data: account } = await supabase
       .from('connected_accounts')
       .select('id, status')
       .eq('id', accountId)
+      .eq('user_id', user.id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (!account) {
@@ -35,12 +42,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all folders for the account (excluding hidden)
+    // Get all folders for the account (excluding hidden and non-primary duplicates)
     const { data: folders, error: foldersError } = await supabase
       .from('account_folders')
       .select('*')
       .eq('account_id', accountId)
+      .eq('tenant_id', user.tenant_id)
       .is('is_hidden', false)
+      .eq('is_primary', true) // Only show primary folders (filters out duplicates like "INBOX" vs "Inbox")
       .order('display_name');
 
     if (foldersError) {
@@ -76,7 +85,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const body = await request.json();
 
     if (!body.accountId) {
@@ -93,11 +107,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists, is active, and belongs to the user's tenant
     const { data: account } = await supabase
       .from('connected_accounts')
       .select('id, status')
       .eq('id', body.accountId)
+      .eq('user_id', user.id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (!account || account.status !== 'active') {
@@ -120,6 +136,7 @@ export async function POST(request: NextRequest) {
           .select('graph_id')
           .eq('id', body.parentFolderId)
           .eq('account_id', body.accountId)
+          .eq('tenant_id', user.tenant_id)
           .single();
 
         if (!parentFolder) {
