@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Settings as SettingsIcon, User, Palette, Bell, X, FileSignature, Users } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { SignatureSettings } from "@/components/settings/SignatureSettings";
 import { OrganizationSettings } from "@/components/settings/OrganizationSettings";
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general");
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -588,5 +588,18 @@ function NotificationSettings() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap the page content in Suspense to handle useSearchParams()
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full items-center justify-center bg-surface-primary">
+        <div className="text-text-secondary">Loading settings...</div>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
