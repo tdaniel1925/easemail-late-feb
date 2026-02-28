@@ -69,11 +69,30 @@ interface GraphMessage {
 }
 
 export class MessageDeltaSyncService {
+  private folderMap: Map<string, string> | null = null; // Cache for graph_id -> uuid mapping
+
   constructor(
     private graphClient: Client,
     private accountId: string,
     private folderId?: string // Optional: sync specific folder, or all folders if not provided
   ) {}
+
+  /**
+   * Pre-load folder map to avoid N+1 queries
+   * Loads all folders once at start of sync instead of querying for each message
+   */
+  private async loadFolderMap(): Promise<void> {
+    if (this.folderMap) return; // Already loaded
+
+    const supabase = createAdminClient();
+    const { data: folders } = await supabase
+      .from('account_folders')
+      .select('id, graph_id')
+      .eq('account_id', this.accountId);
+
+    this.folderMap = new Map((folders || []).map(f => [f.graph_id, f.id]));
+    console.log(`[Delta Sync] Pre-loaded ${this.folderMap.size} folders into memory`);
+  }
 
   /**
    * Perform delta sync for messages
@@ -91,6 +110,9 @@ export class MessageDeltaSyncService {
     try {
       const supabase = createAdminClient();
 
+      // PRE-LOAD FOLDER MAP (FIX N+1 QUERY PROBLEM)
+      await this.loadFolderMap();
+
       // Get current delta token for this account/folder
       const resourceType = this.folderId ? `messages:${this.folderId}` : 'messages';
       const { data: syncState } = await supabase
@@ -107,8 +129,8 @@ export class MessageDeltaSyncService {
         ? `/me/mailFolders/${this.folderId}/messages/delta`
         : `/me/messages/delta`;
 
-      // Add $select to include full body content
-      deltaUrl += '?$select=id,conversationId,subject,bodyPreview,body,from,toRecipients,ccRecipients,bccRecipients,replyTo,sentDateTime,receivedDateTime,hasAttachments,importance,isRead,isDraft,flag,parentFolderId,internetMessageId,conversationIndex';
+      // Add $select to include full body content and $top for pagination (max 999 per request)
+      deltaUrl += '?$select=id,conversationId,subject,bodyPreview,body,from,toRecipients,ccRecipients,bccRecipients,replyTo,sentDateTime,receivedDateTime,hasAttachments,importance,isRead,isDraft,flag,parentFolderId,internetMessageId,conversationIndex&$top=999';
 
       // If we have a delta token, use it for incremental sync
       if (deltaToken) {
@@ -125,31 +147,23 @@ export class MessageDeltaSyncService {
 
       while (hasMore) {
         try {
-          const response = await this.graphClient.api(nextLink).get();
+          // Graph API call with rate limit handling
+          const response = await this.graphApiCallWithRetry(nextLink);
 
           const messages: GraphMessage[] = response.value || [];
-          console.log(`Fetched ${messages.length} messages from delta query`);
+          console.log(`[Delta Sync] Fetched ${messages.length} messages from Graph API`);
 
-          // Process each message
-          for (const message of messages) {
-            try {
-              if (message['@removed']) {
-                // Message was deleted
-                await this.deleteMessage(message.id);
-                result.deleted++;
-              } else {
-                // Message was created or updated
-                const isNew = await this.upsertMessage(message);
-                if (isNew) {
-                  result.created++;
-                } else {
-                  result.updated++;
-                }
-              }
-              result.synced++;
-            } catch (error: any) {
-              result.errors.push(`Failed to process message ${message.id}: ${error.message}`);
-            }
+          // Process messages in batches for better performance
+          const BATCH_SIZE = 100;
+          for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+            const batch = messages.slice(i, i + BATCH_SIZE);
+            const batchResult = await this.processBatch(batch);
+
+            result.created += batchResult.created;
+            result.updated += batchResult.updated;
+            result.deleted += batchResult.deleted;
+            result.synced += batchResult.synced;
+            result.errors.push(...batchResult.errors);
           }
 
           // Check for next page or delta link
@@ -190,38 +204,120 @@ export class MessageDeltaSyncService {
   }
 
   /**
-   * Upsert a message into the database
-   * Returns true if created, false if updated
+   * Process a batch of messages efficiently
+   * Uses batch existence checks and bulk inserts/updates
    */
-  private async upsertMessage(message: GraphMessage): Promise<boolean> {
+  private async processBatch(messages: GraphMessage[]): Promise<{
+    created: number;
+    updated: number;
+    deleted: number;
+    synced: number;
+    errors: string[];
+  }> {
+    const result = { created: 0, updated: 0, deleted: 0, synced: 0, errors: [] as string[] };
     const supabase = createAdminClient();
 
-    // Check if message exists
-    const { data: existing } = await supabase
-      .from('messages')
-      .select('id')
-      .eq('account_id', this.accountId)
-      .eq('graph_id', message.id)
-      .single();
+    // Separate deletions from upserts
+    const deletions = messages.filter(m => m['@removed']);
+    const upserts = messages.filter(m => !m['@removed']);
 
-    // Look up folder ID from graph folder ID
-    let folderUuid: string | null = null;
-    if (message.parentFolderId) {
-      const { data: folder } = await supabase
-        .from('account_folders')
-        .select('id')
+    // Handle deletions
+    if (deletions.length > 0) {
+      const deletionIds = deletions.map(m => m.id);
+      const { error } = await supabase
+        .from('messages')
+        .delete()
         .eq('account_id', this.accountId)
-        .eq('graph_id', message.parentFolderId)
-        .single();
+        .in('graph_id', deletionIds);
 
-      folderUuid = folder?.id || null;
+      if (error) {
+        result.errors.push(`Bulk delete failed: ${error.message}`);
+      } else {
+        result.deleted = deletions.length;
+        result.synced += deletions.length;
+        console.log(`[Delta Sync] ✓ Deleted ${deletions.length} messages`);
+      }
+    }
+
+    if (upserts.length === 0) return result;
+
+    // BATCH EXISTENCE CHECK (instead of N queries)
+    const graphIds = upserts.map(m => m.id);
+    const { data: existingMessages } = await supabase
+      .from('messages')
+      .select('graph_id, id')
+      .eq('account_id', this.accountId)
+      .in('graph_id', graphIds);
+
+    const existingMap = new Map((existingMessages || []).map(m => [m.graph_id, m.id]));
+
+    // Prepare inserts and updates
+    const inserts = [];
+    const updates = [];
+
+    for (const message of upserts) {
+      try {
+        const messageData = this.prepareMessageData(message);
+        const existingId = existingMap.get(message.id);
+
+        if (existingId) {
+          updates.push({ ...messageData, id: existingId, updated_at: new Date().toISOString() });
+        } else {
+          inserts.push(messageData);
+        }
+      } catch (error: any) {
+        result.errors.push(`Failed to prepare message ${message.id}: ${error.message}`);
+      }
+    }
+
+    // BULK INSERT
+    if (inserts.length > 0) {
+      const { error } = await supabase.from('messages').insert(inserts);
+      if (error) {
+        result.errors.push(`Bulk insert failed: ${error.message}`);
+      } else {
+        result.created = inserts.length;
+        result.synced += inserts.length;
+        console.log(`[Delta Sync] ✓ Inserted ${inserts.length} messages`);
+      }
+    }
+
+    // BULK UPDATE (using upsert)
+    if (updates.length > 0) {
+      const { error } = await supabase.from('messages').upsert(updates);
+      if (error) {
+        result.errors.push(`Bulk update failed: ${error.message}`);
+      } else {
+        result.updated = updates.length;
+        result.synced += updates.length;
+        console.log(`[Delta Sync] ↻ Updated ${updates.length} messages`);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Prepare message data for database insert/update
+   * Uses pre-loaded folder map instead of querying database
+   */
+  private prepareMessageData(message: GraphMessage): any {
+    // Look up folder ID from pre-loaded map (NO DATABASE QUERY!)
+    let folderUuid: string | null = null;
+    if (message.parentFolderId && this.folderMap) {
+      folderUuid = this.folderMap.get(message.parentFolderId) || null;
+    }
+
+    // Fallback to constructor folderId if needed
+    if (!folderUuid && this.folderId && this.folderMap) {
+      folderUuid = this.folderMap.get(this.folderId) || null;
     }
 
     if (!folderUuid) {
-      throw new Error(`Folder not found for graph_id: ${message.parentFolderId}`);
+      throw new Error(`Folder not found for graph_id: ${message.parentFolderId || this.folderId || 'unknown'}`);
     }
 
-    const messageData = {
+    return {
       account_id: this.accountId,
       graph_id: message.id,
       conversation_id: message.conversationId,
@@ -259,49 +355,56 @@ export class MessageDeltaSyncService {
       is_flagged: message.flag?.flagStatus === 'flagged',
       folder_id: folderUuid,
     };
-
-    if (existing) {
-      // Update existing message
-      const { error } = await supabase
-        .from('messages')
-        .update({
-          ...messageData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-
-      if (error) {
-        throw new Error(`Failed to update message: ${error.message}`);
-      }
-
-      return false; // Updated
-    } else {
-      // Create new message
-      const { error } = await supabase.from('messages').insert(messageData);
-
-      if (error) {
-        throw new Error(`Failed to create message: ${error.message}`);
-      }
-
-      return true; // Created
-    }
   }
 
   /**
-   * Delete a message from the database
+   * Call Graph API with automatic retry and rate limit handling
    */
-  private async deleteMessage(graphId: string): Promise<void> {
-    const supabase = createAdminClient();
+  private async graphApiCallWithRetry(url: string, maxRetries = 3): Promise<any> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.graphClient.api(url).get();
+      } catch (error: any) {
+        // Handle rate limiting (429 Too Many Requests)
+        if (error.statusCode === 429) {
+          const retryAfter = parseInt(error.headers?.['retry-after'] || '60');
+          console.log(`[Delta Sync] Rate limited. Waiting ${retryAfter}s before retry ${attempt}/${maxRetries}...`);
+          await this.sleep(retryAfter * 1000);
 
-    const { error } = await supabase
-      .from('messages')
-      .delete()
-      .eq('account_id', this.accountId)
-      .eq('graph_id', graphId);
+          if (attempt < maxRetries) {
+            continue; // Retry
+          }
+        }
 
-    if (error) {
-      throw new Error(`Failed to delete message: ${error.message}`);
+        // Handle transient errors with exponential backoff
+        if (attempt < maxRetries && this.isTransientError(error)) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+          console.log(`[Delta Sync] Transient error. Retrying after ${delay}ms (attempt ${attempt}/${maxRetries})...`);
+          await this.sleep(delay);
+          continue;
+        }
+
+        // Non-retryable error or max retries reached
+        throw error;
+      }
     }
+
+    throw new Error('Max retries reached');
+  }
+
+  /**
+   * Check if error is transient and should be retried
+   */
+  private isTransientError(error: any): boolean {
+    const transientCodes = [408, 429, 500, 502, 503, 504];
+    return transientCodes.includes(error.statusCode);
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
