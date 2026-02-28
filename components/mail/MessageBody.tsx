@@ -23,29 +23,39 @@ interface MessageBodyProps {
 }
 
 export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, messageId, attachments = [] }: MessageBodyProps) {
-  const [showImages, setShowImages] = useState(false);
+  const [showImages, setShowImages] = useState(true); // Show images by default
   const [hasExternalImages, setHasExternalImages] = useState(false);
   const [showQuotedText, setShowQuotedText] = useState(false);
   const [hasQuotedText, setHasQuotedText] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  const handleTrustSender = () => {
+  const handleBlockSender = () => {
     if (!fromAddress) return;
 
-    const trustedSenders = JSON.parse(localStorage.getItem("easemail_trusted_senders") || "[]");
-    if (!trustedSenders.includes(fromAddress.toLowerCase())) {
-      trustedSenders.push(fromAddress.toLowerCase());
-      localStorage.setItem("easemail_trusted_senders", JSON.stringify(trustedSenders));
+    const blockedSenders = JSON.parse(localStorage.getItem("easemail_blocked_image_senders") || "[]");
+    if (!blockedSenders.includes(fromAddress.toLowerCase())) {
+      blockedSenders.push(fromAddress.toLowerCase());
+      localStorage.setItem("easemail_blocked_image_senders", JSON.stringify(blockedSenders));
     }
+
+    setShowImages(false);
+  };
+
+  const handleUnblockSender = () => {
+    if (!fromAddress) return;
+
+    const blockedSenders = JSON.parse(localStorage.getItem("easemail_blocked_image_senders") || "[]");
+    const filtered = blockedSenders.filter((email: string) => email !== fromAddress.toLowerCase());
+    localStorage.setItem("easemail_blocked_image_senders", JSON.stringify(filtered));
 
     setShowImages(true);
   };
 
   useEffect(() => {
     if (bodyRef.current && bodyHtml) {
-      // Check if sender is trusted
-      const trustedSenders = JSON.parse(localStorage.getItem("easemail_trusted_senders") || "[]");
-      const isTrusted = fromAddress && trustedSenders.includes(fromAddress.toLowerCase());
+      // Check if sender is blocked
+      const blockedSenders = JSON.parse(localStorage.getItem("easemail_blocked_image_senders") || "[]");
+      const isBlocked = fromAddress && blockedSenders.includes(fromAddress.toLowerCase());
 
       // Check if there are external images
       const tempDiv = document.createElement("div");
@@ -57,8 +67,10 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
       });
       setHasExternalImages(hasExternal);
 
-      // Auto-load images if sender is trusted
-      if (isTrusted && hasExternal) {
+      // Block images if sender is in blocked list
+      if (isBlocked && hasExternal) {
+        setShowImages(false);
+      } else if (hasExternal) {
         setShowImages(true);
       }
     }
@@ -247,55 +259,75 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
 
   return (
     <div className="h-full overflow-y-auto bg-surface-primary">
-      {/* External Images Banner */}
+      {/* External Images Banner - Show when images are blocked */}
       {hasExternalImages && !showImages && (
-        <div className="sticky top-0 z-10 border-b border-border-subtle bg-surface-secondary px-4 py-2">
+        <div className="sticky top-0 z-10 border-b border-border-subtle bg-amber-50 px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <ImageIcon size={14} className="text-text-tertiary" strokeWidth={1.5} />
-              <span className="text-xs text-text-secondary">
-                External images are blocked for your privacy
+              <ImageIcon size={14} className="text-amber-700" strokeWidth={1.5} />
+              <span className="text-xs text-amber-900">
+                Images are blocked from this sender
               </span>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowImages(true)}
-                className="rounded-md border border-border-default bg-surface-primary px-3 py-1 text-xs font-medium text-text-primary transition-colors hover:bg-surface-hover"
+                onClick={handleUnblockSender}
+                className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
+                title={`Load images from ${fromAddress || 'this sender'}`}
               >
-                Load images
+                Unblock sender
               </button>
-              {fromAddress && (
-                <button
-                  onClick={handleTrustSender}
-                  className="rounded-md bg-accent px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-hover"
-                  title={`Always load images from ${fromAddress}`}
-                >
-                  Trust sender
-                </button>
-              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Message Body Content - centered with max width for readability */}
-      <div className="mx-auto max-w-3xl px-6 py-6">
+      {/* Option to block images when they are showing */}
+      {hasExternalImages && showImages && fromAddress && (
+        <div className="sticky top-0 z-10 border-b border-border-subtle bg-surface-secondary px-4 py-1.5">
+          <div className="flex items-center justify-end">
+            <button
+              onClick={handleBlockSender}
+              className="text-xs text-text-tertiary hover:text-text-secondary transition-colors"
+              title={`Block images from ${fromAddress}`}
+            >
+              Block images from this sender
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Message Body Content */}
+      <div className="mx-auto max-w-4xl px-8 py-6">
         {renderContent()}
       </div>
 
       <style jsx global>{`
         .email-content {
-          font-size: 13px;
-          line-height: 1.625;
-          color: var(--text-primary, #1A1A1A);
+          font-size: 14px;
+          line-height: 1.6;
+          color: #1A1A1A;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+
+        /* Reset email client styles */
+        .email-content * {
+          max-width: 100%;
         }
 
         .email-content p {
-          margin: 0 0 16px 0;
+          margin: 0 0 12px 0;
         }
 
         .email-content p:last-child {
           margin-bottom: 0;
+        }
+
+        .email-content p:empty {
+          margin: 0;
+          line-height: 0;
         }
 
         .email-content h1,
@@ -393,26 +425,57 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
         .email-content img {
           max-width: 100%;
           height: auto;
-          border-radius: 6px;
-          margin: 16px 0;
+          display: block;
+          margin: 0 auto;
         }
 
+        /* Handle email layout tables */
         .email-content table {
-          width: 100%;
           border-collapse: collapse;
+          border-spacing: 0;
+          max-width: 100%;
+        }
+
+        .email-content table[role="presentation"],
+        .email-content table[border="0"],
+        .email-content table[cellpadding="0"],
+        .email-content table[cellspacing="0"] {
+          border: none !important;
+        }
+
+        .email-content table[role="presentation"] td,
+        .email-content table[border="0"] td {
+          border: none !important;
+          padding: 0;
+        }
+
+        /* Content tables (actual data tables) */
+        .email-content table:not([role="presentation"]):not([border="0"]) {
           margin: 16px 0;
         }
 
-        .email-content th,
-        .email-content td {
-          border: 1px solid var(--border-default, #E5E7EB);
+        .email-content table:not([role="presentation"]):not([border="0"]) th,
+        .email-content table:not([role="presentation"]):not([border="0"]) td {
+          border: 1px solid #E5E7EB;
           padding: 8px 12px;
           text-align: left;
         }
 
-        .email-content th {
-          background: var(--bg-secondary, #F8F9FA);
+        .email-content table:not([role="presentation"]):not([border="0"]) th {
+          background: #F8F9FA;
           font-weight: 500;
+        }
+
+        /* Email container divs */
+        .email-content > div,
+        .email-content > table {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        .email-content center {
+          width: 100%;
+          display: block;
         }
 
         .email-content hr {
@@ -429,6 +492,59 @@ export function MessageBody({ bodyHtml, bodyText, contentType, fromAddress, mess
         .email-content em,
         .email-content i {
           font-style: italic;
+        }
+
+        /* Email buttons */
+        .email-content a[style*="background"],
+        .email-content a[style*="button"],
+        .email-content td[style*="background"] a {
+          display: inline-block;
+          text-decoration: none !important;
+          border-bottom: none !important;
+        }
+
+        /* Font smoothing */
+        .email-content {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Handle email spacers */
+        .email-content div[style*="height"][style*="line-height: 0"],
+        .email-content div[style*="height: 0"],
+        .email-content div[style*="font-size: 0"] {
+          line-height: 0;
+          font-size: 0;
+          overflow: hidden;
+        }
+
+        /* Responsive fixes */
+        @media only screen and (max-width: 600px) {
+          .email-content table {
+            width: 100% !important;
+          }
+
+          .email-content img {
+            width: 100% !important;
+            height: auto !important;
+          }
+        }
+
+        /* Better text wrapping */
+        .email-content span,
+        .email-content div {
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+
+        /* Remove excessive line breaks */
+        .email-content br + br + br {
+          display: none;
+        }
+
+        /* Better spacing for divs */
+        .email-content > div + div {
+          margin-top: 0;
         }
       `}</style>
     </div>

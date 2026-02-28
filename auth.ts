@@ -8,7 +8,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     MicrosoftEntraID({
       clientId: process.env.AZURE_AD_CLIENT_ID!,
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      issuer: `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/v2.0`,
+      // Use 'common' for multi-tenant support (any Microsoft account)
+      issuer: `https://login.microsoftonline.com/common/v2.0`,
       authorization: {
         params: {
           scope: 'openid profile email offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite Chat.ReadWrite Contacts.Read Presence.Read ChannelMessage.Read.All OnlineMeetings.ReadWrite',
@@ -39,40 +40,54 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         let userId = existingUser?.id;
 
         if (!existingUser) {
-          // Get or create tenant
-          const domain = user.email?.split('@')[1] || 'my-organization';
-          let tenant;
-
-          // Try to find existing tenant for this domain
-          const { data: existingTenant } = await supabase
-            .from('tenants')
-            .select('*')
-            .eq('name', domain)
+          // Check for pending invitation
+          const { data: pendingInvitation } = await supabase
+            .from('invitations')
+            .select('*, tenant:tenant_id(*)')
+            .eq('email', user.email!.toLowerCase())
+            .eq('status', 'pending')
             .single();
 
-          if (existingTenant) {
-            tenant = existingTenant;
-          } else {
-            // Create new tenant with unique slug
-            const baseSlug = user.email?.split('@')[0] || 'org';
-            const uniqueSlug = `${baseSlug}-${crypto.randomUUID().slice(0, 8)}`;
+          let tenant;
+          let userRole = 'owner'; // default for new tenants
 
-            const { data: newTenant, error: tenantError } = await supabase
-              .from('tenants')
-              .insert({
-                name: domain,
-                slug: uniqueSlug,
-                plan: 'starter',
+          if (pendingInvitation) {
+            // User was invited - use invitation's tenant and role
+            console.log('[Auth] Found pending invitation for:', user.email);
+            tenant = pendingInvitation.tenant;
+            userRole = pendingInvitation.role;
+
+            // Mark invitation as accepted
+            await supabase
+              .from('invitations')
+              .update({
+                status: 'accepted',
+                accepted_at: new Date().toISOString(),
               })
-              .select()
+              .eq('id', pendingInvitation.id);
+          } else {
+            // No invitation - check if tenant exists for their domain
+            const domain = user.email?.split('@')[1] || 'my-organization';
+
+            // Try to find existing tenant for this domain
+            const { data: existingTenant } = await supabase
+              .from('tenants')
+              .select('*')
+              .eq('name', domain)
               .single();
 
-            if (tenantError || !newTenant) {
-              console.error('Failed to create tenant:', tenantError);
-              return false;
+            if (existingTenant) {
+              // Tenant exists - join as member
+              console.log('[Auth] Joining existing tenant:', domain);
+              tenant = existingTenant;
+              userRole = 'member';
+            } else {
+              // No invitation AND no existing tenant = BLOCK
+              console.error('[Auth] Signup blocked - no invitation found for new organization');
+              console.error('[Auth] Email:', user.email, 'Domain:', domain);
+              // Return error URL to show invitation required message
+              return '/auth/error?error=invitation_required';
             }
-
-            tenant = newTenant;
           }
 
           // Create user
@@ -84,7 +99,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               email: user.email!,
               display_name: user.name || user.email,
               avatar_url: user.image,
-              role: 'owner',
+              role: userRole,
             })
             .select()
             .single();

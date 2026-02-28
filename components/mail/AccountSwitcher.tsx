@@ -24,6 +24,29 @@ export function AccountSwitcher() {
     fetchAccounts();
   }, []);
 
+  // Auto-refresh accounts every 5 seconds for real-time unread counts
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      // Silent refresh - don't show loading state
+      const silentFetch = async () => {
+        try {
+          const response = await fetch("/api/accounts");
+          if (!response.ok) return;
+
+          const data = await response.json();
+          setAccounts(data.accounts || []);
+        } catch (err) {
+          // Silent fail
+          console.error("Background account refresh failed:", err);
+        }
+      };
+
+      silentFetch();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(intervalId);
+  }, [setAccounts]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -70,6 +93,25 @@ export function AccountSwitcher() {
   const handleAccountSwitch = (accountId: string) => {
     setActiveAccount(accountId);
     setIsOpen(false);
+  };
+
+  const handleReauth = async (accountId: string) => {
+    try {
+      const response = await fetch(`/api/accounts/${accountId}/reauth`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate reauth');
+      }
+
+      const { authUrl } = await response.json();
+      // Redirect to Microsoft auth page
+      window.location.href = authUrl;
+    } catch (err: any) {
+      console.error('Reauth error:', err);
+      setError(err.message);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -137,7 +179,17 @@ export function AccountSwitcher() {
           <span className="flex-1 text-[10px] text-yellow-700 dark:text-yellow-400">
             {accounts.find((a) => a.status === "needs_reauth")?.email.split("@")[0]} needs reconnection
           </span>
-          <button className="text-[10px] font-medium text-accent">Fix</button>
+          <button
+            onClick={() => {
+              const accountToReauth = accounts.find((a) => a.status === "needs_reauth");
+              if (accountToReauth) {
+                handleReauth(accountToReauth.id);
+              }
+            }}
+            className="text-[10px] font-medium text-accent hover:underline"
+          >
+            Fix
+          </button>
         </div>
       )}
 
@@ -162,7 +214,7 @@ export function AccountSwitcher() {
               <button
                 key={account.id}
                 onClick={() => handleAccountSwitch(account.id)}
-                className={`flex w-full items-center gap-2 px-3 py-2 transition-colors hover:bg-surface-hover ${
+                className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-surface-hover ${
                   account.id === activeAccountId ? "bg-surface-selected" : ""
                 }`}
               >
@@ -174,29 +226,34 @@ export function AccountSwitcher() {
                   <img
                     src={account.avatar_url}
                     alt={account.email}
-                    className="h-6 w-6 rounded-full"
+                    className="h-7 w-7 flex-shrink-0 rounded-full"
                   />
                 ) : (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white">
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-semibold text-white">
                     {getInitials(account.email, account.display_name)}
                   </div>
                 )}
 
                 {/* Account info */}
-                <div className="flex min-w-0 flex-1 flex-col items-start">
-                  <span className="w-full overflow-hidden text-ellipsis whitespace-nowrap text-left text-xs text-text-primary">
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="overflow-hidden text-ellipsis whitespace-nowrap text-xs font-medium text-text-primary">
                     {account.display_name || account.email}
                   </span>
                   {account.display_name && (
-                    <span className="text-[10px] text-text-tertiary">
+                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-[10px] text-text-tertiary">
                       {account.email}
+                    </span>
+                  )}
+                  {account.status === 'needs_reauth' && (
+                    <span className="text-[10px] text-yellow-600 dark:text-yellow-400">
+                      Needs reconnection
                     </span>
                   )}
                 </div>
 
                 {/* Unread count */}
                 {(account.unreadCount || 0) > 0 && (
-                  <span className="text-xs font-semibold text-text-primary">
+                  <span className="flex-shrink-0 text-xs font-semibold text-accent">
                     {account.unreadCount}
                   </span>
                 )}

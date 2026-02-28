@@ -78,7 +78,40 @@ supabase status
 
 ---
 
-### 4. Commit Initial Setup (1 minute)
+### 4. Generate Admin API Key (1 minute)
+
+EaseMail uses an invitation-only system. Platform admins need an API key to bootstrap new organizations.
+
+**Generate a secure API key:**
+```powershell
+# Using OpenSSL (if installed)
+openssl rand -base64 32
+
+# OR using PowerShell
+[Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((New-Guid).Guid))
+```
+
+**Add to `.env.local`:**
+```bash
+ADMIN_API_KEY=your-generated-key-here
+```
+
+**Important:**
+- Keep this key secret
+- Never commit it to git
+- Rotate every 90 days
+- Only share with trusted platform admins
+
+**To bootstrap a new organization:**
+```powershell
+npm run bootstrap
+```
+
+See `ADMIN-GUIDE.md` for complete documentation on managing organizations and invitations.
+
+---
+
+### 5. Commit Initial Setup (1 minute)
 
 ```powershell
 # Initialize git (if not already done)
@@ -118,6 +151,7 @@ Start building the Next.js app immediately.
 - [ ] Database wiped via SQL script
 - [ ] Supabase CLI installed
 - [ ] Supabase CLI linked to project
+- [ ] Admin API key generated and added to .env.local
 - [ ] Git repo initialized and committed
 - [ ] Ready to choose Path A or B
 

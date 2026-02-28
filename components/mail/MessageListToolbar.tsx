@@ -2,13 +2,14 @@
 
 import { Archive, Trash2, Mail, MailOpen, Flag, FolderInput, RefreshCw } from "lucide-react";
 import { useMailStore } from "@/stores/mail-store";
+import { toast } from "@/lib/toast";
 
 interface MessageListToolbarProps {
   onRefresh?: () => void;
 }
 
 export function MessageListToolbar({ onRefresh }: MessageListToolbarProps) {
-  const { selectedMessageIds, clearMessageSelection } = useMailStore();
+  const { selectedMessageIds, clearMessageSelection, updateMessage } = useMailStore();
   const selectedCount = selectedMessageIds.size;
 
   if (selectedCount === 0) {
@@ -16,38 +17,175 @@ export function MessageListToolbar({ onRefresh }: MessageListToolbarProps) {
   }
 
   const handleArchive = async () => {
-    // TODO: Implement archive action
-    console.log("Archive", Array.from(selectedMessageIds));
+    const messageIds = Array.from(selectedMessageIds);
+    const count = selectedCount;
+    let actionExecuted = false;
+    let undoTimeoutId: NodeJS.Timeout;
+
+    // Clear selection immediately for better UX
     clearMessageSelection();
+
+    // Show undo toast
+    toast.success({
+      title: `${count} message(s) archived`,
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          clearTimeout(undoTimeoutId);
+          actionExecuted = false;
+          toast.info('Archive cancelled');
+        },
+      },
+    });
+
+    // Execute archive after 5 seconds if not undone
+    undoTimeoutId = setTimeout(async () => {
+      if (actionExecuted) return;
+      actionExecuted = true;
+
+      try {
+        await Promise.all(
+          messageIds.map((id) =>
+            fetch(`/api/mail/messages/${id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "archive" }),
+            })
+          )
+        );
+      } catch (err: any) {
+        toast.error({
+          title: 'Archive failed',
+          description: err.message,
+        });
+      }
+    }, 5000);
   };
 
   const handleDelete = async () => {
-    // TODO: Implement delete action
-    console.log("Delete", Array.from(selectedMessageIds));
+    const messageIds = Array.from(selectedMessageIds);
+    const count = selectedCount;
+    let actionExecuted = false;
+    let undoTimeoutId: NodeJS.Timeout;
+
+    // Clear selection immediately for better UX
     clearMessageSelection();
+
+    // Show undo toast
+    toast.success({
+      title: `${count} message(s) deleted`,
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          clearTimeout(undoTimeoutId);
+          actionExecuted = false;
+          toast.info('Delete cancelled');
+        },
+      },
+    });
+
+    // Execute delete after 5 seconds if not undone
+    undoTimeoutId = setTimeout(async () => {
+      if (actionExecuted) return;
+      actionExecuted = true;
+
+      try {
+        await Promise.all(
+          messageIds.map((id) =>
+            fetch(`/api/mail/messages/${id}`, {
+              method: "DELETE",
+            })
+          )
+        );
+      } catch (err: any) {
+        toast.error({
+          title: 'Delete failed',
+          description: err.message,
+        });
+      }
+    }, 5000);
   };
 
   const handleMarkRead = async () => {
-    // TODO: Implement mark as read
-    console.log("Mark read", Array.from(selectedMessageIds));
-    clearMessageSelection();
+    const messageIds = Array.from(selectedMessageIds);
+    try {
+      await Promise.all(
+        messageIds.map((id) => {
+          updateMessage(id, { is_read: true });
+          return fetch(`/api/mail/messages/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isRead: true }),
+          });
+        })
+      );
+      toast.success({
+        title: `${selectedCount} message(s) marked as read`,
+      });
+      clearMessageSelection();
+    } catch (err: any) {
+      toast.error({
+        title: 'Mark as read failed',
+        description: err.message,
+      });
+    }
   };
 
   const handleMarkUnread = async () => {
-    // TODO: Implement mark as unread
-    console.log("Mark unread", Array.from(selectedMessageIds));
-    clearMessageSelection();
+    const messageIds = Array.from(selectedMessageIds);
+    try {
+      await Promise.all(
+        messageIds.map((id) => {
+          updateMessage(id, { is_read: false });
+          return fetch(`/api/mail/messages/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isRead: false }),
+          });
+        })
+      );
+      toast.success({
+        title: `${selectedCount} message(s) marked as unread`,
+      });
+      clearMessageSelection();
+    } catch (err: any) {
+      toast.error({
+        title: 'Mark as unread failed',
+        description: err.message,
+      });
+    }
   };
 
   const handleFlag = async () => {
-    // TODO: Implement flag
-    console.log("Flag", Array.from(selectedMessageIds));
-    clearMessageSelection();
+    const messageIds = Array.from(selectedMessageIds);
+    try {
+      await Promise.all(
+        messageIds.map((id) => {
+          updateMessage(id, { is_flagged: true });
+          return fetch(`/api/mail/messages/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isFlagged: true }),
+          });
+        })
+      );
+      toast.success({
+        title: `${selectedCount} message(s) flagged`,
+      });
+      clearMessageSelection();
+    } catch (err: any) {
+      toast.error({
+        title: 'Flag failed',
+        description: err.message,
+      });
+    }
   };
 
   const handleMove = async () => {
-    // TODO: Implement move to folder
-    console.log("Move", Array.from(selectedMessageIds));
+    // TODO: Implement move to folder with folder picker modal
+    toast.info('Move to folder - Coming soon');
   };
 
   return (

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('OAuth reauth error:', error, errorDescription);
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=${encodeURIComponent(
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=${encodeURIComponent(
           errorDescription || error
         )}`
       );
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     if (!code || !state) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=missing_parameters`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=missing_parameters`
       );
     }
 
@@ -35,14 +35,14 @@ export async function GET(request: NextRequest) {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=invalid_state`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=invalid_state`
       );
     }
 
     // Check state timestamp (must be < 10 minutes old)
     if (Date.now() - stateData.timestamp > 600000) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=state_expired`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=state_expired`
       );
     }
 
@@ -56,13 +56,18 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (accountError || !account) {
+      console.error('Account lookup failed:', {
+        accountId: stateData.accountId,
+        error: accountError,
+      });
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=account_not_found`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=account_not_found`
       );
     }
 
     // Exchange code for tokens using direct OAuth2 endpoint
-    const tokenEndpoint = `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`;
+    // Use 'common' endpoint for multi-tenant support (any Microsoft account)
+    const tokenEndpoint = `https://login.microsoftonline.com/common/oauth2/v2.0/token`;
 
     const tokenParams = new URLSearchParams({
       client_id: process.env.AZURE_AD_CLIENT_ID!,
@@ -128,12 +133,12 @@ export async function GET(request: NextRequest) {
     console.log(`Account reauthenticated successfully: ${account.email}`);
 
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings/accounts?success=account_reauthenticated`
+      `${process.env.NEXTAUTH_URL}/settings?tab=accounts&success=account_reauthenticated`
     );
   } catch (error: any) {
     console.error('Reauth callback error:', error);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings/accounts?error=${encodeURIComponent(
+      `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=${encodeURIComponent(
         error.message || 'reauth_failed'
       )}`
     );

@@ -1,7 +1,16 @@
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
+  // Allow test mode bypass in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    const testMode = request.cookies.get('test-mode')?.value === 'true';
+    if (testMode) {
+      console.log('[Middleware] Test mode enabled - bypassing auth');
+      return NextResponse.next();
+    }
+  }
+
   return await updateSession(request);
 }
 

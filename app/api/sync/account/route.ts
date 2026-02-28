@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 import { SyncOrchestrator } from '@/lib/graph/sync-orchestrator';
 
@@ -10,7 +10,11 @@ import { SyncOrchestrator } from '@/lib/graph/sync-orchestrator';
 export async function POST(request: NextRequest) {
   let accountId: string | undefined;
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
 
     // Get accountId from query params or body
     const { searchParams } = new URL(request.url);
@@ -33,11 +37,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists and is active (RLS: tenant-scoped)
     const { data: account, error: accountError } = await supabase
       .from('connected_accounts')
       .select('id, email, status')
       .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (accountError || !account) {
@@ -81,7 +86,7 @@ export async function POST(request: NextRequest) {
     // Update account sync status to error
     if (accountId) {
       try {
-        const supabase = createAdminClient();
+        const supabase = await createClient();
         await supabase
           .from('connected_accounts')
           .update({
@@ -107,7 +112,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const accountId = request.nextUrl.searchParams.get('accountId');
 
     if (!accountId) {
@@ -117,11 +126,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get account sync status
+    // Get account sync status (RLS: tenant-scoped)
     const { data: account, error: accountError } = await supabase
       .from('connected_accounts')
       .select('email, status, last_full_sync_at, status_message, initial_sync_complete, messages_synced')
       .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (accountError || !account) {

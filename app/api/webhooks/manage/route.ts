@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 import { WebhookService } from '@/lib/graph/webhook-service';
 
@@ -9,7 +9,11 @@ import { WebhookService } from '@/lib/graph/webhook-service';
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const body = await request.json();
     const { accountId } = body;
 
@@ -20,11 +24,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists and is active (RLS: tenant-scoped)
     const { data: account, error: accountError } = await supabase
       .from('connected_accounts')
       .select('id, email, status')
       .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (accountError || !account) {
@@ -67,6 +72,10 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const subscriptionId = request.nextUrl.searchParams.get('subscriptionId');
 
     if (!subscriptionId) {
@@ -76,9 +85,9 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const supabase = createAdminClient();
+    const supabase = await createClient();
 
-    // Get subscription from database
+    // Get subscription from database (RLS will filter by tenant)
     const { data: subscription } = await supabase
       .from('webhook_subscriptions')
       .select('account_id')
@@ -118,12 +127,32 @@ export async function DELETE(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const accountId = request.nextUrl.searchParams.get('accountId');
 
     if (!accountId) {
       return NextResponse.json(
         { error: 'accountId is required' },
         { status: 400 }
+      );
+    }
+
+    // Verify account belongs to user's tenant (RLS check)
+    const { data: account } = await supabase
+      .from('connected_accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
+      .single();
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
       );
     }
 

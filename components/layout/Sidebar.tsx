@@ -19,8 +19,8 @@ interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-const navItems = [
-  { id: "mail", icon: Mail, label: "Mail", href: "/mail", badge: 17 },
+// Bottom navigation items (Calendar, Teams, Contacts, CRM)
+const bottomNavItems = [
   { id: "calendar", icon: Calendar, label: "Calendar", href: "/calendar" },
   { id: "teams", icon: MessageSquare, label: "Teams", href: "/teams", badge: 2 },
   { id: "contacts", icon: Users, label: "Contacts", href: "/contacts" },
@@ -34,30 +34,36 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
   if (collapsed) {
     return (
-      <aside className="flex w-12 flex-shrink-0 flex-col items-center gap-1 border-r border-border-default bg-surface-secondary py-3">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
+      <aside className="flex w-12 flex-shrink-0 flex-col border-r border-border-default bg-surface-secondary py-3">
+        {/* Spacer to push bottom nav to bottom */}
+        <div className="flex-1" />
 
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                active
-                  ? 'bg-surface-tertiary'
-                  : 'hover:bg-surface-tertiary'
-              }`}
-              aria-label={item.label}
-            >
-              <Icon
-                size={18}
-                className={active ? 'text-accent' : 'text-text-secondary'}
-                strokeWidth={1.5}
-              />
-            </Link>
-          );
-        })}
+        {/* Bottom navigation icons */}
+        <div className="flex flex-col items-center gap-1">
+          {bottomNavItems.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  active
+                    ? 'bg-surface-tertiary'
+                    : 'hover:bg-surface-tertiary'
+                }`}
+                aria-label={item.label}
+              >
+                <Icon
+                  size={18}
+                  className={active ? 'text-accent' : 'text-text-secondary'}
+                  strokeWidth={1.5}
+                />
+              </Link>
+            );
+          })}
+        </div>
       </aside>
     );
   }
@@ -67,9 +73,14 @@ export function Sidebar({ collapsed }: SidebarProps) {
       {/* Account switcher */}
       <AccountSwitcher />
 
-      {/* Main navigation */}
+      {/* Folder tree - scrollable area */}
       <nav className="flex-1 overflow-y-auto px-2">
-        {navItems.map((item) => {
+        <FolderTree />
+      </nav>
+
+      {/* Bottom navigation - Calendar, Teams, Contacts, CRM */}
+      <div className="border-t border-border-subtle px-2 py-2">
+        {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
 
@@ -77,19 +88,19 @@ export function Sidebar({ collapsed }: SidebarProps) {
             <Link
               key={item.id}
               href={item.href}
-              className={`mb-0.5 flex items-center gap-2 rounded-md border-l-2 px-2 py-1.5 transition-colors ${
+              className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
                 active
-                  ? 'border-accent bg-surface-tertiary'
-                  : 'border-transparent hover:bg-surface-tertiary'
+                  ? 'bg-surface-tertiary'
+                  : 'hover:bg-surface-tertiary'
               }`}
             >
               <Icon
-                size={16}
-                className={active ? 'text-accent' : 'text-text-secondary'}
+                size={15}
+                className={active ? 'text-accent' : 'text-text-tertiary'}
                 strokeWidth={1.5}
               />
               <span
-                className={`text-sm ${
+                className={`text-xs ${
                   active ? 'font-medium text-text-primary' : 'text-text-secondary'
                 }`}
               >
@@ -103,29 +114,28 @@ export function Sidebar({ collapsed }: SidebarProps) {
             </Link>
           );
         })}
+      </div>
 
-        {/* Folder tree - only show in mail view */}
-        {pathname.startsWith('/mail') && (
-          <>
-            <div className="my-2 border-t border-border-subtle" />
-            <FolderTree />
-          </>
-        )}
-      </nav>
-
-      {/* Bottom actions */}
+      {/* Settings & Help */}
       <div className="border-t border-border-subtle px-2 py-2 pb-3">
         <Link
           href="/settings"
-          className="mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-tertiary"
+          className={`mb-0.5 flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
+            isActive('/settings') ? 'bg-surface-tertiary' : 'hover:bg-surface-tertiary'
+          }`}
         >
-          <Settings size={15} className="text-text-tertiary" strokeWidth={1.5} />
-          <span className="text-xs text-text-secondary">Settings</span>
+          <Settings size={15} className={isActive('/settings') ? 'text-accent' : 'text-text-tertiary'} strokeWidth={1.5} />
+          <span className={`text-xs ${isActive('/settings') ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>Settings</span>
         </Link>
-        <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-surface-tertiary">
-          <HelpCircle size={15} className="text-text-tertiary" strokeWidth={1.5} />
-          <span className="text-xs text-text-secondary">Help</span>
-        </button>
+        <Link
+          href="/help"
+          className={`flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors ${
+            isActive('/help') ? 'bg-surface-tertiary' : 'hover:bg-surface-tertiary'
+          }`}
+        >
+          <HelpCircle size={15} className={isActive('/help') ? 'text-accent' : 'text-text-tertiary'} strokeWidth={1.5} />
+          <span className={`text-xs ${isActive('/help') ? 'font-medium text-text-primary' : 'text-text-secondary'}`}>Help</span>
+        </Link>
       </div>
     </aside>
   );

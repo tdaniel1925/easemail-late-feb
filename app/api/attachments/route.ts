@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 import { AttachmentSyncService } from '@/lib/graph/attachment-sync';
 
@@ -9,7 +9,11 @@ import { AttachmentSyncService } from '@/lib/graph/attachment-sync';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const messageId = request.nextUrl.searchParams.get('messageId');
 
     if (!messageId) {
@@ -19,6 +23,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // RLS will automatically filter by tenant_id through the message relation
     const { data: attachments, error } = await supabase
       .from('attachments')
       .select('*')
@@ -48,7 +53,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const body = await request.json();
     const { messageGraphId, accountId, downloadContent } = body;
 
@@ -56,6 +65,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'messageGraphId and accountId are required' },
         { status: 400 }
+      );
+    }
+
+    // Verify account belongs to user's tenant (RLS check)
+    const { data: account } = await supabase
+      .from('connected_accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
+      .single();
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
       );
     }
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Mail } from "lucide-react";
 import { useMailStore } from "@/stores/mail-store";
 import { useComposerStore } from "@/stores/composer-store";
 import { MessageHeader } from "./MessageHeader";
 import { MessageBody } from "./MessageBody";
 import { AttachmentList } from "./AttachmentList";
+import { ContactSlideIn } from "./ContactSlideIn";
+import { toast } from "@/lib/toast";
 
 interface FullMessage {
   id: string;
@@ -35,19 +37,67 @@ interface FullMessage {
 }
 
 export function MessageViewer() {
-  const { viewedMessageId, updateMessage } = useMailStore();
+  const { viewedMessageId, messages, updateMessage } = useMailStore();
   const { openComposer } = useComposerStore();
   const [message, setMessage] = useState<FullMessage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contactSlideInOpen, setContactSlideInOpen] = useState(false);
+  const [contactEmail, setContactEmail] = useState<string>("");
+
+  // Memoize the cached message lookup to avoid re-renders when messages array changes
+  const cachedMessage = useMemo(() => {
+    if (!viewedMessageId) return null;
+    return messages.find((m) => m.id === viewedMessageId);
+  }, [viewedMessageId, messages]);
 
   useEffect(() => {
     if (viewedMessageId) {
-      fetchMessage(viewedMessageId);
+      // Check if we have a cached message with body content
+      if (cachedMessage && (cachedMessage.body_html || cachedMessage.body_text)) {
+        // Convert cached message to FullMessage format
+        const fullMsg: FullMessage = {
+          id: cachedMessage.id,
+          account_id: cachedMessage.account_id,
+          graph_id: cachedMessage.graph_id,
+          subject: cachedMessage.subject,
+          from: {
+            name: cachedMessage.from_name,
+            address: cachedMessage.from_address,
+          },
+          to: cachedMessage.to_recipients || [],
+          cc: cachedMessage.cc_recipients || [],
+          bcc: cachedMessage.bcc_recipients || [],
+          body: {
+            html: cachedMessage.body_html,
+            text: cachedMessage.body_text,
+            content_type: cachedMessage.body_content_type,
+          },
+          received_at: cachedMessage.received_at,
+          is_read: cachedMessage.is_read,
+          is_flagged: cachedMessage.is_flagged,
+          categories: cachedMessage.categories,
+          importance: cachedMessage.importance,
+          has_attachments: cachedMessage.has_attachments,
+        };
+
+        // Set message immediately from cache (instant display!)
+        setMessage(fullMsg);
+        setIsLoading(false);
+
+        // Mark as read if unread
+        if (!cachedMessage.is_read) {
+          markAsRead(viewedMessageId);
+        }
+      } else {
+        // Fallback: fetch from API only if not in cache
+        fetchMessage(viewedMessageId);
+      }
     } else {
       setMessage(null);
     }
-  }, [viewedMessageId]);
+    // Only depend on viewedMessageId and cachedMessage, NOT the entire messages array
+  }, [viewedMessageId, cachedMessage]);
 
   const fetchMessage = async (messageId: string) => {
     setIsLoading(true);
@@ -116,41 +166,111 @@ export function MessageViewer() {
   const handleArchive = async () => {
     if (!message) return;
 
-    try {
-      const response = await fetch(`/api/mail/messages/${message.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "archive" }),
-      });
+    const messageId = message.id;
+    const messageSubject = message.subject;
+    let actionExecuted = false;
+    let undoTimeoutId: NodeJS.Timeout;
 
-      if (!response.ok) {
-        throw new Error("Failed to archive message");
+    // Show undo toast
+    const toastId = toast.success({
+      title: 'Message archived',
+      description: messageSubject || 'Message moved to archive',
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          // Cancel the archive action
+          clearTimeout(undoTimeoutId);
+          actionExecuted = false;
+          toast.info('Archive cancelled');
+        },
+      },
+    });
+
+    // Execute archive after 5 seconds if not undone
+    undoTimeoutId = setTimeout(async () => {
+      if (actionExecuted) return;
+      actionExecuted = true;
+
+      try {
+        const response = await fetch(`/api/mail/messages/${messageId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "archive" }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to archive message");
+        }
+      } catch (err: any) {
+        console.error("Error archiving message:", err);
+        toast.error({
+          title: 'Archive failed',
+          description: err.message,
+        });
       }
-
-      // TODO: Show toast notification
-      console.log("Message archived");
-    } catch (err) {
-      console.error("Error archiving message:", err);
-    }
+    }, 5000);
   };
 
   const handleDelete = async () => {
     if (!message) return;
 
-    try {
-      const response = await fetch(`/api/mail/messages/${message.id}`, {
-        method: "DELETE",
-      });
+    const messageId = message.id;
+    const messageSubject = message.subject;
+    let actionExecuted = false;
+    let undoTimeoutId: NodeJS.Timeout;
 
-      if (!response.ok) {
-        throw new Error("Failed to delete message");
+    // Show undo toast
+    const toastId = toast.success({
+      title: 'Message deleted',
+      description: messageSubject || 'Message moved to trash',
+      duration: 5000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          // Cancel the delete action
+          clearTimeout(undoTimeoutId);
+          actionExecuted = false;
+          toast.info('Delete cancelled');
+        },
+      },
+    });
+
+    // Execute delete after 5 seconds if not undone
+    undoTimeoutId = setTimeout(async () => {
+      if (actionExecuted) return;
+      actionExecuted = true;
+
+      try {
+        const response = await fetch(`/api/mail/messages/${messageId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete message");
+        }
+
+        // Update UI after successful delete
+        // Remove message from the store
+        const { messages, setMessages, setViewedMessage } = useMailStore.getState();
+        const updatedMessages = messages.filter(m => m.id !== messageId);
+        setMessages(updatedMessages);
+
+        // Clear the viewer
+        setViewedMessage(null);
+
+        toast.success({
+          title: 'Message deleted permanently',
+          description: 'Message has been moved to trash',
+        });
+      } catch (err: any) {
+        console.error("Error deleting message:", err);
+        toast.error({
+          title: 'Delete failed',
+          description: err.message,
+        });
       }
-
-      // TODO: Show toast notification
-      console.log("Message deleted");
-    } catch (err) {
-      console.error("Error deleting message:", err);
-    }
+    }, 5000);
   };
 
   const handleToggleFlag = async () => {
@@ -174,6 +294,13 @@ export function MessageViewer() {
       setMessage((prev) => (prev ? { ...prev, is_flagged: newFlaggedState } : null));
     } catch (err) {
       console.error("Error toggling flag:", err);
+    }
+  };
+
+  const handleShowContact = () => {
+    if (message?.from.address) {
+      setContactEmail(message.from.address);
+      setContactSlideInOpen(true);
     }
   };
 
@@ -267,6 +394,7 @@ export function MessageViewer() {
           onArchive={handleArchive}
           onDelete={handleDelete}
           onToggleFlag={handleToggleFlag}
+          onShowContact={handleShowContact}
         />
 
         {message.has_attachments && Array.isArray(message.attachments) && message.attachments.length > 0 && (
@@ -285,6 +413,13 @@ export function MessageViewer() {
           attachments={message.attachments}
         />
       </div>
+
+      {/* Contact slide-in panel */}
+      <ContactSlideIn
+        isOpen={contactSlideInOpen}
+        onClose={() => setContactSlideInOpen(false)}
+        contactEmail={contactEmail}
+      />
     </div>
   );
 }

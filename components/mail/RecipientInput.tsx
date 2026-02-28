@@ -104,6 +104,14 @@ export function RecipientInput({
     onChange(recipients.filter((r) => r.email !== email));
   };
 
+  const handleBlur = () => {
+    // Auto-add email when field loses focus (e.g., when clicking Send button)
+    const input = inputValue.trim();
+    if (input) {
+      addRecipient(input);
+    }
+  };
+
   return (
     <div className="flex items-start gap-2 border-b border-border-subtle py-2">
       <label className="flex-shrink-0 pt-1.5 text-xs font-medium text-text-secondary" style={{ width: "48px" }}>
@@ -132,6 +140,7 @@ export function RecipientInput({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          onBlur={handleBlur}
           placeholder={recipients.length === 0 ? placeholder : ""}
           className="flex-1 border-none bg-transparent text-xs text-text-primary outline-none placeholder:text-text-tertiary"
           style={{ minWidth: "120px" }}

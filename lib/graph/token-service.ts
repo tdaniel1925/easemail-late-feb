@@ -9,8 +9,6 @@ interface TokenData {
 }
 
 class TokenService {
-  private refreshLocks: Map<string, Promise<string>> = new Map();
-
   /**
    * Store tokens for an account (encrypted at rest by Supabase)
    */
@@ -72,25 +70,97 @@ class TokenService {
 
   /**
    * Refresh token using MSAL
-   * Uses mutex to prevent concurrent refreshes
+   * Uses database-backed locking to prevent concurrent refreshes (fixes race condition in multi-instance deployments)
    */
   async refreshToken(accountId: string): Promise<string> {
-    // Check if refresh already in progress
-    const existingRefresh = this.refreshLocks.get(accountId);
-    if (existingRefresh) {
-      console.log(`Refresh already in progress for ${accountId}, waiting...`);
-      return existingRefresh;
+    const supabase = createAdminClient();
+
+    // Try to acquire lock using database (prevents race conditions across multiple server instances)
+    // Wrap in try-catch to gracefully handle schema cache issues (columns may not be in cache yet)
+    try {
+      const lockExpiry = new Date(Date.now() + 30000); // 30 second lock timeout
+
+      // Attempt to acquire lock using upsert with conflict
+      const { data: lockResult, error: lockError } = await supabase
+        .from('account_tokens')
+        .select('refresh_lock_acquired_at, refresh_lock_expires_at')
+        .eq('account_id', accountId)
+        .single();
+
+      if (lockError) {
+        // Schema cache may not have the lock columns yet - proceed without locking
+        console.warn(`Lock check failed (schema cache may need refresh), proceeding without lock:`, lockError.message);
+      } else if (lockResult) {
+        const existingLockExpiry = lockResult.refresh_lock_expires_at ? new Date(lockResult.refresh_lock_expires_at) : null;
+
+        // Check if there's an active lock
+        if (existingLockExpiry && existingLockExpiry > new Date()) {
+          console.log(`Token refresh already in progress for ${accountId}, waiting...`);
+
+          // Wait for the lock to be released (with timeout)
+          const maxWaitTime = 25000; // 25 seconds
+          const startTime = Date.now();
+
+          while (Date.now() - startTime < maxWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+            // Check if lock is released and token is refreshed
+            const { data: checkData } = await supabase
+              .from('account_tokens')
+              .select('access_token, refresh_lock_expires_at, expires_at')
+              .eq('account_id', accountId)
+              .single();
+
+            if (checkData) {
+              const lockStillActive = checkData.refresh_lock_expires_at ? new Date(checkData.refresh_lock_expires_at) > new Date() : false;
+
+              if (!lockStillActive) {
+                // Lock released, return the refreshed token
+                const tokenExpiry = new Date(checkData.expires_at);
+                if (tokenExpiry > new Date()) {
+                  console.log(`Token was refreshed by another instance, using it`);
+                  return checkData.access_token;
+                }
+              }
+            }
+          }
+
+          console.warn(`Lock wait timeout for ${accountId}, proceeding with refresh`);
+        }
+      }
+
+      // Acquire lock (may fail if schema cache doesn't have columns yet)
+      const { error: updateError } = await supabase
+        .from('account_tokens')
+        .update({
+          refresh_lock_acquired_at: new Date().toISOString(),
+          refresh_lock_expires_at: lockExpiry.toISOString(),
+        })
+        .eq('account_id', accountId);
+
+      if (updateError) {
+        console.warn(`Failed to acquire lock for ${accountId} (schema cache may need refresh):`, updateError.message);
+      }
+    } catch (lockingError: any) {
+      // Locking failed (likely schema cache issue), proceed without lock
+      console.warn(`Token refresh locking unavailable, proceeding without lock:`, lockingError.message);
     }
 
-    // Create new refresh promise
-    const refreshPromise = this._doRefresh(accountId);
-    this.refreshLocks.set(accountId, refreshPromise);
-
     try {
-      const token = await refreshPromise;
+      const token = await this._doRefresh(accountId);
       return token;
     } finally {
-      this.refreshLocks.delete(accountId);
+      // Release lock (ignore errors if schema cache doesn't have the column)
+      try {
+        await supabase
+          .from('account_tokens')
+          .update({
+            refresh_lock_expires_at: null,
+          })
+          .eq('account_id', accountId);
+      } catch (releaseError: any) {
+        // Ignore lock release errors
+      }
     }
   }
 

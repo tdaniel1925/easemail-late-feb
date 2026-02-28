@@ -106,7 +106,7 @@ export function SearchModal() {
   };
 
   const highlightMatch = (text: string, query: string) => {
-    if (!query.trim()) return text;
+    if (!text || !query.trim()) return text || '';
 
     const parts = text.split(new RegExp(`(${query})`, "gi"));
     return parts.map((part, i) =>

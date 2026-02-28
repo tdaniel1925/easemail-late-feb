@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 
 /**
  * Helper function to parse recipient data from database
@@ -45,7 +45,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const { id: messageId } = await params;
 
     if (!messageId) {
@@ -55,31 +60,26 @@ export async function GET(
       );
     }
 
-    // Fetch the message
-    const { data: message, error: messageError } = await supabase
+    // Validate that the message belongs to the current user and their tenant
+    const { data: message } = await supabase
       .from('messages')
-      .select('*')
+      .select('*, connected_accounts!inner(user_id, tenant_id)')
       .eq('id', messageId)
       .single();
 
-    if (messageError || !message) {
+    if (!message) {
       return NextResponse.json(
         { error: 'Message not found' },
         { status: 404 }
       );
     }
 
-    // Verify account exists and is active
-    const { data: account } = await supabase
-      .from('connected_accounts')
-      .select('id, email, status')
-      .eq('id', message.account_id)
-      .single();
-
-    if (!account) {
+    // Verify the message's account belongs to the current user and tenant
+    const connectedAccount = message.connected_accounts as any;
+    if (connectedAccount.user_id !== user.id || connectedAccount.tenant_id !== user.tenant_id) {
       return NextResponse.json(
-        { error: 'Associated account not found' },
-        { status: 404 }
+        { error: 'Unauthorized - message does not belong to you' },
+        { status: 403 }
       );
     }
 
@@ -88,6 +88,7 @@ export async function GET(
       .from('attachments')
       .select('*')
       .eq('message_id', messageId)
+      .eq('tenant_id', user.tenant_id)
       .order('name');
 
     // Fetch folder information
@@ -95,6 +96,7 @@ export async function GET(
       .from('account_folders')
       .select('id, display_name, folder_type')
       .eq('id', message.folder_id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     // Build the response
@@ -187,7 +189,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const { id: messageId } = await params;
     const body = await request.json();
 
@@ -198,28 +205,38 @@ export async function PATCH(
       );
     }
 
-    // Fetch the message to get account_id
-    const { data: message, error: messageError } = await supabase
+    // Validate that the message belongs to the current user and their tenant
+    const { data: message } = await supabase
       .from('messages')
-      .select('id, account_id, graph_id')
+      .select('*, connected_accounts!inner(user_id, tenant_id)')
       .eq('id', messageId)
       .single();
 
-    if (messageError || !message) {
+    if (!message) {
       return NextResponse.json(
         { error: 'Message not found' },
         { status: 404 }
       );
     }
 
-    // Verify account exists and is active
+    // Verify the message's account belongs to the current user and tenant
+    const connectedAccount = message.connected_accounts as any;
+    if (connectedAccount.user_id !== user.id || connectedAccount.tenant_id !== user.tenant_id) {
+      return NextResponse.json(
+        { error: 'Unauthorized - message does not belong to you' },
+        { status: 403 }
+      );
+    }
+
+    // Verify account status
     const { data: account } = await supabase
       .from('connected_accounts')
       .select('id, status')
       .eq('id', message.account_id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
-    if (!account || account.status !== 'active') {
+    if (!account || account.status === 'error' || account.status === 'disconnected') {
       return NextResponse.json(
         { error: 'Account not active' },
         { status: 400 }
@@ -243,7 +260,7 @@ export async function PATCH(
       updates.importance = body.importance;
     }
 
-    // Update in database
+    // Update in database (RLS will enforce tenant_id automatically)
     const { data: updated, error: updateError } = await supabase
       .from('messages')
       .update(updates)
@@ -280,7 +297,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const { id: messageId } = await params;
 
     if (!messageId) {
@@ -290,35 +312,45 @@ export async function DELETE(
       );
     }
 
-    // Fetch the message
-    const { data: message, error: messageError } = await supabase
+    // Validate that the message belongs to the current user and their tenant
+    const { data: message } = await supabase
       .from('messages')
-      .select('id, account_id, graph_id, folder_id')
+      .select('*, connected_accounts!inner(user_id, tenant_id)')
       .eq('id', messageId)
       .single();
 
-    if (messageError || !message) {
+    if (!message) {
       return NextResponse.json(
         { error: 'Message not found' },
         { status: 404 }
       );
     }
 
-    // Verify account exists and is active
+    // Verify the message's account belongs to the current user and tenant
+    const connectedAccount = message.connected_accounts as any;
+    if (connectedAccount.user_id !== user.id || connectedAccount.tenant_id !== user.tenant_id) {
+      return NextResponse.json(
+        { error: 'Unauthorized - message does not belong to you' },
+        { status: 403 }
+      );
+    }
+
+    // Verify account status
     const { data: account } = await supabase
       .from('connected_accounts')
       .select('id, status')
       .eq('id', message.account_id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
-    if (!account || account.status !== 'active') {
+    if (!account || account.status === 'error' || account.status === 'disconnected') {
       return NextResponse.json(
         { error: 'Account not active' },
         { status: 400 }
       );
     }
 
-    // Soft delete: mark as deleted
+    // Soft delete: mark as deleted (RLS will enforce tenant_id automatically)
     const { error: deleteError } = await supabase
       .from('messages')
       .update({

@@ -31,3 +31,8 @@ export function createGraphClientWithToken(accessToken: string): Client {
     },
   });
 }
+
+/**
+ * Alias for createGraphClient for compatibility
+ */
+export const getGraphClient = createGraphClient;

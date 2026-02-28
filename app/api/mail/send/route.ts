@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 
 interface SendEmailRequest {
@@ -28,7 +28,12 @@ interface SendEmailRequest {
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const supabase = await createClient();
     const body: SendEmailRequest = await request.json();
 
     // Validate required fields
@@ -53,11 +58,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists, is active, and belongs to the user's tenant
     const { data: account, error: accountError } = await supabase
       .from('connected_accounts')
       .select('id, email, status')
       .eq('id', body.accountId)
+      .eq('user_id', user.id)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (accountError || !account) {
@@ -106,11 +113,12 @@ export async function POST(request: NextRequest) {
 
     // Handle reply
     if (body.replyTo) {
-      // Get the original message
+      // Get the original message (RLS will enforce tenant_id automatically)
       const { data: originalMessage } = await supabase
         .from('messages')
         .select('internet_message_id, subject')
         .eq('graph_id', body.replyTo)
+        .eq('account_id', body.accountId)
         .single();
 
       if (originalMessage?.internet_message_id) {
@@ -125,10 +133,12 @@ export async function POST(request: NextRequest) {
 
     // Handle forward
     if (body.forwardOf) {
+      // Get the original message (RLS will enforce tenant_id automatically)
       const { data: originalMessage } = await supabase
         .from('messages')
         .select('subject')
         .eq('graph_id', body.forwardOf)
+        .eq('account_id', body.accountId)
         .single();
 
       // Prefix subject with "Fwd: " if not already present
@@ -191,11 +201,12 @@ export async function POST(request: NextRequest) {
     // Note: We'll rely on sync to get the full details later
     // For now, create a minimal record
     try {
-      // Get Sent Items folder
+      // Get Sent Items folder (RLS will enforce tenant_id automatically)
       const { data: sentFolder } = await supabase
         .from('account_folders')
         .select('id')
         .eq('account_id', body.accountId)
+        .eq('tenant_id', user.tenant_id)
         .or('folder_type.eq.sentitems,display_name.eq.Sent Items')
         .single();
 

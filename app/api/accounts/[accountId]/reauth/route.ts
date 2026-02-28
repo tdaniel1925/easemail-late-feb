@@ -56,8 +56,9 @@ export async function POST(
       })
     ).toString('base64');
 
+    // Use 'common' endpoint for multi-tenant support (any Microsoft account)
     const authUrl = new URL(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`
+      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`
     );
 
     authUrl.searchParams.set('client_id', clientId);

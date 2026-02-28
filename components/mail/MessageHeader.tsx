@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Reply, ReplyAll, Forward, Archive, Trash2, Flag, MoreHorizontal, Printer, AlertCircle } from "lucide-react";
+import { Reply, ReplyAll, Forward, Archive, Trash2, Flag, MoreHorizontal, Printer, AlertCircle, UserCircle } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
 interface Recipient {
@@ -27,6 +27,7 @@ interface MessageHeaderProps {
   onArchive: () => void;
   onDelete: () => void;
   onToggleFlag: () => void;
+  onShowContact?: () => void;
 }
 
 export function MessageHeader({
@@ -45,6 +46,7 @@ export function MessageHeader({
   onArchive,
   onDelete,
   onToggleFlag,
+  onShowContact,
 }: MessageHeaderProps) {
   const [showAllTo, setShowAllTo] = useState(false);
   const [showCc, setShowCc] = useState(false);
@@ -184,6 +186,16 @@ export function MessageHeader({
               </span>
               {fromAddress && fromName && (
                 <span className="text-xs text-text-tertiary">&lt;{fromAddress}&gt;</span>
+              )}
+              {/* Contact info button */}
+              {fromAddress && onShowContact && (
+                <button
+                  onClick={onShowContact}
+                  className="ml-1 rounded-md p-1 transition-colors hover:bg-surface-hover"
+                  title="View contact info"
+                >
+                  <UserCircle size={14} className="text-text-tertiary" strokeWidth={1.5} />
+                </button>
               )}
             </div>
 

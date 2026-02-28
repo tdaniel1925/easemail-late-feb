@@ -22,6 +22,9 @@ interface GraphNotification {
  * Microsoft Graph sends two types of requests:
  * 1. Validation request (with validationToken query param) - respond immediately
  * 2. Change notification (POST with notification payload) - process asynchronously
+ *
+ * SECURITY NOTE: This endpoint uses admin client because it's called by Microsoft Graph,
+ * not by authenticated users. Security is validated through client state verification.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -45,6 +48,17 @@ export async function POST(request: NextRequest) {
     const notifications: GraphNotification[] = body.value || [];
 
     console.log(`[Webhook] Received ${notifications.length} change notifications`);
+
+    // Validate all notifications have required fields
+    for (const notification of notifications) {
+      if (!notification.subscriptionId || !notification.clientState) {
+        console.error('[Webhook] Invalid notification - missing subscriptionId or clientState');
+        return NextResponse.json(
+          { error: 'Invalid notification format' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Process notifications asynchronously
     // We respond with 202 Accepted immediately to avoid timeout

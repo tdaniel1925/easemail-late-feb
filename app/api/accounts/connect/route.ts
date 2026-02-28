@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { cookies } from 'next/headers';
 
 /**
  * Initiate OAuth flow to connect additional Microsoft account
@@ -7,19 +8,60 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
+    // Get cookies from the request
+    const cookieHeader = request.headers.get('cookie') || '';
 
-    // Verify user is authenticated
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    console.log('Cookie header:', cookieHeader.substring(0, 100));
 
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    // Call the session endpoint with the same cookies
+    const sessionRes = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/session`, {
+      headers: {
+        cookie: cookieHeader,
+      },
+      cache: 'no-store',
+    });
+
+    if (!sessionRes.ok) {
+      console.error('Failed to get session from auth endpoint:', sessionRes.status);
+      return NextResponse.json({ error: 'Not authenticated. Please sign in first.' }, { status: 401 });
     }
 
-    // Get EaseMail user to check account limits
+    const session = await sessionRes.json();
+
+    console.log('Session from endpoint:', {
+      hasUser: !!session?.user,
+      hasEmail: !!session?.user?.email,
+      email: session?.user?.email,
+    });
+
+    if (!session || !session.user?.email) {
+      console.error('Authentication failed - no valid session');
+      return NextResponse.json({ error: 'Not authenticated. Please sign in first.' }, { status: 401 });
+    }
+
+    const supabase = createAdminClient();
+
+    // Get user by email from session
+    console.log('Looking up user by email:', session.user.email);
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', session.user.email)
+      .single();
+
+    if (userError || !user) {
+      console.error('User lookup failed:', {
+        email: session.user.email,
+        error: userError,
+        message: userError?.message,
+        details: userError?.details,
+      });
+      return NextResponse.json({ error: 'User not found in database. Please ensure your account is properly set up.' }, { status: 404 });
+    }
+
+    console.log('User found:', user.id);
+
+    // Get tenant info to check account limits
     const { data: easemailUser, error: easemailUserError } = await supabase
       .from('users')
       .select('*, tenants(*)')
@@ -27,7 +69,7 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (easemailUserError || !easemailUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User data not found' }, { status: 404 });
     }
 
     // Check current account count
@@ -95,8 +137,9 @@ export async function GET(request: NextRequest) {
       })
     ).toString('base64');
 
+    // Use 'common' endpoint for multi-tenant support (any Microsoft account)
     const authUrl = new URL(
-      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`
+      `https://login.microsoftonline.com/common/oauth2/v2.0/authorize`
     );
 
     authUrl.searchParams.set('client_id', clientId);

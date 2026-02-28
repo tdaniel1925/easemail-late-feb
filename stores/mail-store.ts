@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, subscribeWithSelector } from 'zustand/middleware';
 
 export interface Folder {
   id: string;
@@ -104,8 +104,9 @@ interface MailState {
 }
 
 export const useMailStore = create<MailState>()(
-  persist(
-    (set, get) => ({
+  subscribeWithSelector(
+    persist(
+      (set, get) => ({
       // Folder state
       folders: [],
       selectedFolderId: null,
@@ -126,7 +127,14 @@ export const useMailStore = create<MailState>()(
       // Folder actions
       setFolders: (folders) => set({ folders }),
 
-      setSelectedFolder: (folderId) => set({ selectedFolderId: folderId }),
+      setSelectedFolder: (folderId) => {
+        console.log('=== STORE: setSelectedFolder called ===');
+        console.log('New folder ID:', folderId);
+        console.log('Previous folder ID:', get().selectedFolderId);
+        set({ selectedFolderId: folderId });
+        console.log('Store updated, new state:', get().selectedFolderId);
+        console.log('=== STORE: setSelectedFolder end ===');
+      },
 
       toggleFolderCollapse: (folderId) =>
         set((state) => {
@@ -280,5 +288,6 @@ export const useMailStore = create<MailState>()(
         collapsedFolders: new Set(persistedState?.collapsedFolders || []),
       }),
     }
+    )
   )
 );

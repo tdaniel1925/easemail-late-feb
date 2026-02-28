@@ -185,4 +185,60 @@ export class WebhookService {
 
     return subscriptions || [];
   }
+
+  /**
+   * Create a webhook subscription for calendar event notifications
+   * Same pattern as message subscriptions
+   */
+  async createCalendarSubscription(): Promise<WebhookSubscription> {
+    const supabase = createAdminClient();
+
+    // Generate client state for validation
+    const clientState = crypto.randomUUID();
+
+    // Webhook notification URL (must be publicly accessible HTTPS)
+    const notificationUrl = `${process.env.NEXTAUTH_URL}/api/webhooks/graph`;
+
+    // Subscription expires in 3 days (max for calendar events resource)
+    const expirationDateTime = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    try {
+      // Create subscription via Graph API
+      const subscription = await this.graphClient
+        .api('/subscriptions')
+        .post({
+          changeType: 'created,updated,deleted',
+          notificationUrl,
+          resource: '/me/calendar/events',
+          expirationDateTime,
+          clientState,
+        });
+
+      // Store subscription in database
+      await supabase.from('webhook_subscriptions').insert({
+        account_id: this.accountId,
+        ms_subscription_id: subscription.id,
+        resource: subscription.resource,
+        change_types: subscription.changeType.split(','),
+        notification_url: subscription.notificationUrl,
+        expires_at: subscription.expirationDateTime,
+        client_state: clientState,
+        status: 'active',
+      });
+
+      console.log(`Calendar webhook subscription created: ${subscription.id} (expires ${expirationDateTime})`);
+
+      return {
+        id: subscription.id,
+        resource: subscription.resource,
+        changeType: subscription.changeType,
+        notificationUrl: subscription.notificationUrl,
+        expirationDateTime: subscription.expirationDateTime,
+        clientState,
+      };
+    } catch (error: any) {
+      console.error('Failed to create calendar webhook subscription:', error);
+      throw new Error(`Calendar webhook subscription failed: ${error.message}`);
+    }
+  }
 }

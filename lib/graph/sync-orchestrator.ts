@@ -118,41 +118,81 @@ export class SyncOrchestrator {
       console.log(`[Sync Orchestrator] Step 2: Syncing messages for ${folders.length} folders...`);
       result.messageSync.totalFolders = folders.length;
 
-      // Step 3: Sync messages for each folder
-      for (const folder of folders) {
-        try {
-          console.log(`[Sync Orchestrator] Syncing messages for folder: ${folder.display_name} (${folder.total_count} messages)...`);
+      // Step 3: Sync messages for folders in parallel batches (10 at a time for speed)
+      const BATCH_SIZE = 10;
+      const batches: typeof folders[] = [];
 
-          const messageSync = new MessageDeltaSyncService(
-            this.graphClient,
-            this.accountId,
-            folder.graph_id
-          );
+      for (let i = 0; i < folders.length; i += BATCH_SIZE) {
+        batches.push(folders.slice(i, i + BATCH_SIZE));
+      }
 
-          const messageSyncResult = await messageSync.syncMessages();
+      console.log(`[Sync Orchestrator] Processing ${folders.length} folders in ${batches.length} batches of ${BATCH_SIZE}`);
 
-          result.messageSync.totalMessages += messageSyncResult.synced;
-          result.messageSync.folderResults.push({
-            folderName: folder.display_name,
-            folderId: folder.graph_id,
-            synced: messageSyncResult.synced,
-            created: messageSyncResult.created,
-            updated: messageSyncResult.updated,
-            deleted: messageSyncResult.deleted,
-          });
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex];
+        console.log(`[Sync Orchestrator] Batch ${batchIndex + 1}/${batches.length}: Processing ${batch.length} folders...`);
 
-          if (messageSyncResult.errors.length > 0) {
-            result.messageSync.errors.push(...messageSyncResult.errors);
+        // Process all folders in this batch concurrently
+        const batchPromises = batch.map(async (folder) => {
+          try {
+            console.log(`[Sync Orchestrator] [${folder.display_name}] Starting sync (${folder.total_count} messages)...`);
+
+            const messageSync = new MessageDeltaSyncService(
+              this.graphClient,
+              this.accountId,
+              folder.graph_id
+            );
+
+            const startTime = Date.now();
+            const messageSyncResult = await messageSync.syncMessages();
+            const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+            console.log(`[Sync Orchestrator] [${folder.display_name}] ✓ ${messageSyncResult.synced} messages synced in ${duration}s`);
+
+            return {
+              success: true,
+              folder,
+              result: messageSyncResult,
+            };
+          } catch (error: any) {
+            console.error(`[Sync Orchestrator] [${folder.display_name}] ✗ Error: ${error.message}`);
+            return {
+              success: false,
+              folder,
+              error: error.message,
+            };
+          }
+        });
+
+        // Wait for all folders in this batch to complete
+        const batchResults = await Promise.all(batchPromises);
+
+        // Aggregate results
+        for (const batchResult of batchResults) {
+          if (batchResult.success && batchResult.result) {
+            result.messageSync.totalMessages += batchResult.result.synced;
+            result.messageSync.folderResults.push({
+              folderName: batchResult.folder.display_name,
+              folderId: batchResult.folder.graph_id,
+              synced: batchResult.result.synced,
+              created: batchResult.result.created,
+              updated: batchResult.result.updated,
+              deleted: batchResult.result.deleted,
+            });
+
+            if (batchResult.result.errors.length > 0) {
+              result.messageSync.errors.push(...batchResult.result.errors);
+              result.overallStatus = 'partial';
+            }
+          } else if (batchResult.error) {
+            const errorMsg = `Failed to sync messages for folder ${batchResult.folder.display_name}: ${batchResult.error}`;
+            result.messageSync.errors.push(errorMsg);
+            result.errors.push(errorMsg);
             result.overallStatus = 'partial';
           }
-
-          console.log(`[Sync Orchestrator] Folder ${folder.display_name}: ${messageSyncResult.synced} messages synced`);
-        } catch (error: any) {
-          const errorMsg = `Failed to sync messages for folder ${folder.display_name}: ${error.message}`;
-          result.messageSync.errors.push(errorMsg);
-          result.errors.push(errorMsg);
-          result.overallStatus = 'partial';
         }
+
+        console.log(`[Sync Orchestrator] Batch ${batchIndex + 1}/${batches.length} complete. Total synced: ${result.messageSync.totalMessages} messages`);
       }
 
       console.log(`[Sync Orchestrator] Message sync complete: ${result.messageSync.totalMessages} messages across ${folders.length} folders`);

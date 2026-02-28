@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Inbox,
   Send,
@@ -20,11 +21,14 @@ interface FolderTreeProps {
 }
 
 export function FolderTree({ accountId }: FolderTreeProps) {
+  const router = useRouter();
+
   const {
     folders,
     selectedFolderId,
     collapsedFolders,
     isLoadingFolders,
+    isLoadingMessages,
     foldersError,
     setFolders,
     setSelectedFolder,
@@ -40,6 +44,9 @@ export function FolderTree({ accountId }: FolderTreeProps) {
   // Use provided accountId or fall back to active account
   const currentAccountId = accountId || activeAccountId;
 
+  // Ref to track the current fetch AbortController
+  const fetchAbortControllerRef = useRef<AbortController | null>(null);
+
   // Fetch folders when account changes
   useEffect(() => {
     if (currentAccountId) {
@@ -47,12 +54,58 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     }
   }, [currentAccountId]);
 
+  // Auto-refresh folder counts every 5 seconds for real-time updates
+  // Uses AbortController to prevent race conditions
+  useEffect(() => {
+    if (!currentAccountId) return;
+
+    const abortController = new AbortController();
+
+    const intervalId = setInterval(() => {
+      // Silent refresh - don't show loading state
+      const silentFetch = async () => {
+        try {
+          const response = await fetch(`/api/mail/folders?accountId=${currentAccountId}`, {
+            signal: abortController.signal,
+          });
+          if (!response.ok) return;
+
+          const data = await response.json();
+          setFolders(data.folders || []);
+        } catch (err: any) {
+          // Silent fail for aborted requests - don't disrupt user experience
+          if (err.name !== 'AbortError') {
+            console.error("Background folder refresh failed:", err);
+          }
+        }
+      };
+
+      silentFetch();
+    }, 5000); // Refresh every 5 seconds (less aggressive than message refresh)
+
+    return () => {
+      clearInterval(intervalId);
+      abortController.abort(); // Cancel pending requests
+    };
+  }, [currentAccountId, setFolders]);
+
   const fetchFolders = async (accId: string) => {
+    // Cancel any pending fetch
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this fetch
+    const abortController = new AbortController();
+    fetchAbortControllerRef.current = abortController;
+
     setLoadingFolders(true);
     setFoldersError(null);
 
     try {
-      const response = await fetch(`/api/mail/folders?accountId=${accId}`);
+      const response = await fetch(`/api/mail/folders?accountId=${accId}`, {
+        signal: abortController.signal,
+      });
 
       if (!response.ok) {
         throw new Error("Failed to fetch folders");
@@ -61,8 +114,8 @@ export function FolderTree({ accountId }: FolderTreeProps) {
       const data = await response.json();
       setFolders(data.folders || []);
 
-      // Auto-select inbox if no folder is selected
-      if (!selectedFolderId && data.folders.length > 0) {
+      // Always auto-select inbox when account changes (better UX than keeping old folder selected)
+      if (data.folders.length > 0) {
         const inbox = data.folders.find(
           (f: FolderType) =>
             f.display_name === "Inbox" ||
@@ -70,13 +123,20 @@ export function FolderTree({ accountId }: FolderTreeProps) {
         );
         if (inbox) {
           setSelectedFolder(inbox.id);
+        } else {
+          // Fallback to first folder if no inbox found
+          setSelectedFolder(data.folders[0].id);
         }
       }
     } catch (err: any) {
-      console.error("Error fetching folders:", err);
-      setFoldersError(err.message);
+      if (err.name !== 'AbortError') {
+        console.error("Error fetching folders:", err);
+        setFoldersError(err.message);
+      }
     } finally {
-      setLoadingFolders(false);
+      if (!abortController.signal.aborted) {
+        setLoadingFolders(false);
+      }
     }
   };
 
@@ -112,17 +172,35 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     return <Folder size={size} strokeWidth={strokeWidth} />;
   };
 
-  const handleFolderClick = (folder: FolderType) => {
-    setSelectedFolder(folder.id);
+  const handleFolderClick = (e: React.MouseEvent<HTMLButtonElement>, folderId: string, folderName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    console.log('=== FOLDER CLICK START ===');
+    console.log('Clicked folder:', folderName);
+    console.log('Folder ID:', folderId);
+    console.log('Current selectedFolderId before update:', selectedFolderId);
+
+    // Update the selected folder in the store
+    setSelectedFolder(folderId);
+
+    // Navigate to the mail page to show the messages
+    router.push('/mail');
+
+    console.log('setSelectedFolder called, navigating to /mail');
+    console.log('=== FOLDER CLICK END ===');
   };
 
   const handleToggleCollapse = (e: React.MouseEvent, folderId: string) => {
     e.stopPropagation();
+    e.preventDefault();
+    console.log('[FolderTree] Toggling collapse for folder:', folderId);
     toggleFolderCollapse(folderId);
   };
 
   const renderFolder = (folder: FolderType, depth: number = 0) => {
     const isActive = folder.id === selectedFolderId;
+    const isFolderLoading = isActive && isLoadingMessages;
     const children = getChildFolders(folder.graph_id);
     const hasChildren = children.length > 0;
     const isCollapsed = collapsedFolders.has(folder.id);
@@ -130,8 +208,9 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     return (
       <div key={folder.id}>
         <button
-          onClick={() => handleFolderClick(folder)}
-          className={`mb-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors ${
+          type="button"
+          onClick={(e) => handleFolderClick(e, folder.id, folder.display_name)}
+          className={`mb-0.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors cursor-pointer ${
             isActive
               ? "bg-surface-tertiary"
               : "hover:bg-surface-tertiary"
@@ -186,11 +265,15 @@ export function FolderTree({ accountId }: FolderTreeProps) {
             {folder.display_name}
           </span>
 
-          {/* Unread count badge */}
-          {(folder.unread_count || 0) > 0 && (
-            <span className="text-xs font-semibold text-text-primary">
-              {folder.unread_count}
-            </span>
+          {/* Loading spinner or Unread count badge */}
+          {isFolderLoading ? (
+            <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          ) : (
+            (folder.unread_count || 0) > 0 && (
+              <span className="text-xs font-semibold text-text-primary">
+                {folder.unread_count}
+              </span>
+            )
           )}
         </button>
 
@@ -262,6 +345,14 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     const aIndex = systemFolderOrder.indexOf(a.folder_type || "");
     const bIndex = systemFolderOrder.indexOf(b.folder_type || "");
     return aIndex - bIndex;
+  });
+
+  console.log('[FolderTree] Rendering folders', {
+    totalFolders: folders.length,
+    systemFolders: systemFolders.length,
+    customFolders: customFolders.length,
+    selectedFolderId,
+    currentAccountId
   });
 
   return (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient, getCurrentUser } from '@/lib/supabase/server';
 import { createGraphClient } from '@/lib/graph/client';
 import { MessageDeltaSyncService } from '@/lib/graph/message-delta-sync';
 
@@ -8,10 +8,18 @@ import { MessageDeltaSyncService } from '@/lib/graph/message-delta-sync';
  * Trigger message delta sync for a specific account and optional folder
  */
 export async function POST(request: NextRequest) {
+  let accountId: string | undefined;
+  let folderId: string | undefined;
+
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const body = await request.json();
-    const { accountId, folderId } = body;
+    accountId = body.accountId;
+    folderId = body.folderId;
 
     if (!accountId) {
       return NextResponse.json(
@@ -20,11 +28,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify account exists and is active
+    // Verify account exists and is active (RLS: tenant-scoped)
     const { data: account, error: accountError } = await supabase
       .from('connected_accounts')
       .select('id, email, status')
       .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
       .single();
 
     if (accountError || !account) {
@@ -80,13 +89,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Message delta sync error:', error);
 
-    // Update sync state to error
-    try {
-      const supabase = createAdminClient();
-      const body = await request.json();
-      const { accountId, folderId } = body;
-
-      if (accountId) {
+    // Update sync state to error (using accountId/folderId from outer scope)
+    if (accountId) {
+      try {
+        const supabase = await createClient();
         const resourceType = folderId ? `messages:${folderId}` : 'messages';
         await supabase
           .from('sync_state')
@@ -97,9 +103,9 @@ export async function POST(request: NextRequest) {
           })
           .eq('account_id', accountId)
           .eq('resource_type', resourceType);
+      } catch (updateError) {
+        console.error('Failed to update sync state:', updateError);
       }
-    } catch (updateError) {
-      console.error('Failed to update sync state:', updateError);
     }
 
     return NextResponse.json(
@@ -115,7 +121,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAdminClient();
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const supabase = await createClient();
     const accountId = request.nextUrl.searchParams.get('accountId');
     const folderId = request.nextUrl.searchParams.get('folderId');
 
@@ -123,6 +133,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'accountId is required' },
         { status: 400 }
+      );
+    }
+
+    // Verify account belongs to user's tenant (RLS check)
+    const { data: account } = await supabase
+      .from('connected_accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('tenant_id', user.tenant_id)
+      .single();
+
+    if (!account) {
+      return NextResponse.json(
+        { error: 'Account not found' },
+        { status: 404 }
       );
     }
 

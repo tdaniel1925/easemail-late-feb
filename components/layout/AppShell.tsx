@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
-import { Composer, SearchModal } from "@/components/mail";
+import { Composer } from "@/components/mail";
+import { EventEditorModal } from "@/components/calendar/EventEditorModal";
 import { Toaster } from "@/components/ui/Toaster";
 import { KeyboardShortcuts } from "@/components/ui/KeyboardShortcuts";
 import { useComposerStore } from "@/stores/composer-store";
-import { useSearchStore } from "@/stores/search-store";
+import { useCalendarStore } from "@/stores/calendar-store";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useInitializeApp } from "@/hooks/useInitializeApp";
 import { useHydrated } from "@/hooks/useHydrated";
@@ -19,7 +20,7 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isOpen, closeComposer, openComposer } = useComposerStore();
-  const { openSearch } = useSearchStore();
+  const { editorMode, closeEditor } = useCalendarStore();
 
   // Initialize app settings
   useInitializeApp();
@@ -37,11 +38,10 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
+        {/* Top bar - search is now integrated inside TopBar */}
         <TopBar
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onCompose={() => openComposer("new")}
-          onSearch={openSearch}
         />
 
         {/* Content */}
@@ -52,7 +52,7 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Modals */}
       <Composer open={isOpen} onClose={closeComposer} />
-      <SearchModal />
+      <EventEditorModal open={editorMode !== null} onClose={closeEditor} />
       <KeyboardShortcuts />
 
       {/* Toast Notifications */}

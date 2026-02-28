@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Client } from '@microsoft/microsoft-graph-client';
 import { tokenService } from '@/lib/graph/token-service';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('OAuth error:', error, errorDescription);
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=${encodeURIComponent(
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=${encodeURIComponent(
           errorDescription || error
         )}`
       );
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     if (!code || !state) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=missing_parameters`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=missing_parameters`
       );
     }
 
@@ -36,18 +36,18 @@ export async function GET(request: NextRequest) {
       stateData = JSON.parse(Buffer.from(state, 'base64').toString());
     } catch {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=invalid_state`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=invalid_state`
       );
     }
 
     // Check state timestamp (must be < 10 minutes old)
     if (Date.now() - stateData.timestamp > 600000) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=state_expired`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=state_expired`
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Verify user matches state
     const { data: easemailUser, error: userError } = await supabase
@@ -57,13 +57,20 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (userError || !easemailUser) {
+      console.error('User lookup failed:', {
+        userId: stateData.userId,
+        error: userError,
+        message: userError?.message,
+        details: userError?.details,
+      });
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=user_not_found`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=user_not_found`
       );
     }
 
     // Exchange code for tokens using direct OAuth2 endpoint
-    const tokenEndpoint = `https://login.microsoftonline.com/${process.env.AZURE_AD_TENANT_ID}/oauth2/v2.0/token`;
+    // Use 'common' endpoint for multi-tenant support (any Microsoft account)
+    const tokenEndpoint = `https://login.microsoftonline.com/common/oauth2/v2.0/token`;
 
     const tokenParams = new URLSearchParams({
       client_id: process.env.AZURE_AD_CLIENT_ID!,
@@ -112,18 +119,18 @@ export async function GET(request: NextRequest) {
 
     if (existingAccount) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/settings/accounts?error=account_already_connected`
+        `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=account_already_connected`
       );
     }
 
     // Get next available color for this user's accounts
     const { data: userAccounts } = await supabase
       .from('connected_accounts')
-      .select('account_color')
+      .select('color')
       .eq('user_id', easemailUser.id);
 
     const usedColors = new Set(
-      userAccounts?.map((a) => a.account_color) || []
+      userAccounts?.map((a) => a.color) || []
     );
     const availableColors = [
       'blue',
@@ -154,7 +161,7 @@ export async function GET(request: NextRequest) {
         avatar_url: null, // Will be updated by sync job
         tenant_id_ms: null, // Will be populated from token claims if needed
         account_type: accountType,
-        account_color: nextColor,
+        color: nextColor,
         status: 'active',
         is_default: false, // Additional accounts are never default
       })
@@ -212,12 +219,12 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings/accounts?success=account_connected`
+      `${process.env.NEXTAUTH_URL}/settings?tab=accounts&success=account_connected`
     );
   } catch (error: any) {
     console.error('Connect account callback error:', error);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/settings/accounts?error=${encodeURIComponent(
+      `${process.env.NEXTAUTH_URL}/settings?tab=accounts&error=${encodeURIComponent(
         error.message || 'connection_failed'
       )}`
     );
