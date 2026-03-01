@@ -27,32 +27,33 @@ export function AccountSwitcher() {
     fetchAccounts();
   }, [hydrated]);
 
-  // Auto-refresh accounts every 5 seconds for real-time unread counts
-  useEffect(() => {
-    if (!hydrated) return;
+  // Auto-refresh accounts - DISABLED to prevent infinite loop in production
+  // TODO: Re-enable after fixing hydration issues
+  // useEffect(() => {
+  //   if (!hydrated) return;
 
-    const intervalId = setInterval(() => {
-      // Silent refresh - don't show loading state
-      const silentFetch = async () => {
-        try {
-          const response = await fetch("/api/accounts");
-          if (!response.ok) return;
+  //   const intervalId = setInterval(() => {
+  //     // Silent refresh - don't show loading state
+  //     const silentFetch = async () => {
+  //       try {
+  //         const response = await fetch("/api/accounts");
+  //         if (!response.ok) return;
 
-          const data = await response.json();
-          setAccounts(data.accounts || []);
-        } catch (err) {
-          // Silent fail
-          console.error("Background account refresh failed:", err);
-        }
-      };
+  //         const data = await response.json();
+  //         setAccounts(data.accounts || []);
+  //       } catch (err) {
+  //         // Silent fail
+  //         console.error("Background account refresh failed:", err);
+  //       }
+  //     };
 
-      silentFetch();
-    }, 5000); // Refresh every 5 seconds
+  //     silentFetch();
+  //   }, 5000); // Refresh every 5 seconds
 
-    return () => clearInterval(intervalId);
-    // setAccounts is a stable Zustand action and doesn't need to be in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  //   return () => clearInterval(intervalId);
+  //   // setAccounts is a stable Zustand action and doesn't need to be in deps
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [hydrated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

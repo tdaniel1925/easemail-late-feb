@@ -175,11 +175,13 @@ export function MessageList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, activeAccountId, selectedFolderId]);
 
-  // Auto-refresh messages every 30 seconds for real-time updates
+  // Auto-refresh messages - DISABLED to prevent infinite loop in production
+  // TODO: Re-enable after fixing hydration issues
   // PERFORMANCE: Changed from 3s to 30s to reduce API load and prevent excessive re-renders
   // Fetches ALL loaded pages to preserve scroll position and pagination state
   useEffect(() => {
     if (!hydrated || !activeAccountId || !selectedFolderId) return;
+    return; // DISABLED - just return early
 
     // AbortController to cancel pending requests when dependencies change
     const abortController = new AbortController();

@@ -57,42 +57,42 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     }
   }, [hydrated, currentAccountId]);
 
-  // Auto-refresh folder counts every 5 seconds for real-time updates
-  // Uses AbortController to prevent race conditions
-  useEffect(() => {
-    if (!hydrated || !currentAccountId) return;
+  // Auto-refresh folder counts - DISABLED to prevent infinite loop in production
+  // TODO: Re-enable after fixing hydration issues
+  // useEffect(() => {
+  //   if (!hydrated || !currentAccountId) return;
 
-    const abortController = new AbortController();
+  //   const abortController = new AbortController();
 
-    const intervalId = setInterval(() => {
-      // Silent refresh - don't show loading state
-      const silentFetch = async () => {
-        try {
-          const response = await fetch(`/api/mail/folders?accountId=${currentAccountId}`, {
-            signal: abortController.signal,
-          });
-          if (!response.ok) return;
+  //   const intervalId = setInterval(() => {
+  //     // Silent refresh - don't show loading state
+  //     const silentFetch = async () => {
+  //       try {
+  //         const response = await fetch(`/api/mail/folders?accountId=${currentAccountId}`, {
+  //           signal: abortController.signal,
+  //         });
+  //         if (!response.ok) return;
 
-          const data = await response.json();
-          setFolders(data.folders || []);
-        } catch (err: any) {
-          // Silent fail for aborted requests - don't disrupt user experience
-          if (err.name !== 'AbortError') {
-            console.error("Background folder refresh failed:", err);
-          }
-        }
-      };
+  //         const data = await response.json();
+  //         setFolders(data.folders || []);
+  //       } catch (err: any) {
+  //         // Silent fail for aborted requests - don't disrupt user experience
+  //         if (err.name !== 'AbortError') {
+  //           console.error("Background folder refresh failed:", err);
+  //         }
+  //       }
+  //     };
 
-      silentFetch();
-    }, 5000); // Refresh every 5 seconds (less aggressive than message refresh)
+  //     silentFetch();
+  //   }, 5000); // Refresh every 5 seconds (less aggressive than message refresh)
 
-    return () => {
-      clearInterval(intervalId);
-      abortController.abort(); // Cancel pending requests
-    };
-    // setFolders is a stable Zustand action and doesn't need to be in deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, currentAccountId]);
+  //   return () => {
+  //     clearInterval(intervalId);
+  //     abortController.abort(); // Cancel pending requests
+  //   };
+  //   // setFolders is a stable Zustand action and doesn't need to be in deps
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [hydrated, currentAccountId]);
 
   const fetchFolders = async (accId: string) => {
     // Cancel any pending fetch
