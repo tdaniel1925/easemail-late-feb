@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // RLS will automatically filter by tenant_id
+    // connected_accounts are tied to user_id, not tenant_id
+    // Get all connected accounts for this user
     const { data: accounts, error: accountsError } = await supabase
       .from('connected_accounts')
       .select(`
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
         initial_sync_complete,
         created_at
       `)
-      .eq('tenant_id', user.tenant_id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (accountsError) {
