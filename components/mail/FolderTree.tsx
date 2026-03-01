@@ -87,7 +87,9 @@ export function FolderTree({ accountId }: FolderTreeProps) {
       clearInterval(intervalId);
       abortController.abort(); // Cancel pending requests
     };
-  }, [currentAccountId, setFolders]);
+    // setFolders is a stable Zustand action and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAccountId]);
 
   const fetchFolders = async (accId: string) => {
     // Cancel any pending fetch

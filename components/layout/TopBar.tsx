@@ -82,7 +82,9 @@ export function TopBar({ onToggleSidebar, onCompose, onSearch }: TopBarProps) {
     } finally {
       setSearching(false);
     }
-  }, [activeAccountId, setResults, setSearching]);
+    // setResults and setSearching are stable Zustand actions and don't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId]);
 
   // Handle input change with debounce
   const handleInputChange = (value: string) => {
