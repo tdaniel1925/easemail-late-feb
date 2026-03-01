@@ -114,10 +114,14 @@ export function FolderTree({ accountId }: FolderTreeProps) {
       }
 
       const data = await response.json();
+
+      // Store current selectedFolderId BEFORE updating folders to prevent loops
+      const currentSelectedId = selectedFolderId;
       setFolders(data.folders || []);
 
-      // Always auto-select inbox when account changes (better UX than keeping old folder selected)
-      if (data.folders.length > 0) {
+      // Only auto-select inbox if NO folder is currently selected
+      // This prevents loops when folders are refreshed
+      if (!currentSelectedId && data.folders.length > 0) {
         const inbox = data.folders.find(
           (f: FolderType) =>
             f.display_name === "Inbox" ||

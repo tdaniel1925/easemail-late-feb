@@ -78,10 +78,14 @@ export function AccountSwitcher() {
       }
 
       const data = await response.json();
+
+      // Only set first account as active if none is selected AND we have accounts
+      // Store current activeAccountId BEFORE updating accounts to prevent loops
+      const currentActiveId = activeAccountId;
       setAccounts(data.accounts || []);
 
-      // Set first account as active if none is selected
-      if (!activeAccountId && data.accounts.length > 0) {
+      // Only auto-select if there's truly no active account (not just undefined from initial render)
+      if (!currentActiveId && data.accounts.length > 0 && !isLoading) {
         setActiveAccount(data.accounts[0].id);
       }
     } catch (err: any) {
