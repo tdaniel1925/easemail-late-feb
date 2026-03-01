@@ -8,8 +8,11 @@ import { useAccountStore } from "@/stores/account-store";
 import { MessageListItem } from "./MessageListItem";
 import { MessageListToolbar } from "./MessageListToolbar";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/hooks/useHydrated";
 
 export function MessageList() {
+  const hydrated = useHydrated();
+
   // PERFORMANCE: Use shallow comparison to prevent unnecessary re-renders
   // Only re-render when these specific values actually change
   const {
@@ -165,17 +168,18 @@ export function MessageList() {
   // Fetch messages when account or folder changes
   // DO NOT include fetchMessages in dependencies - it causes issues with re-renders
   useEffect(() => {
+    if (!hydrated) return;
     if (activeAccountId && selectedFolderId) {
       fetchMessages();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAccountId, selectedFolderId]);
+  }, [hydrated, activeAccountId, selectedFolderId]);
 
   // Auto-refresh messages every 30 seconds for real-time updates
   // PERFORMANCE: Changed from 3s to 30s to reduce API load and prevent excessive re-renders
   // Fetches ALL loaded pages to preserve scroll position and pagination state
   useEffect(() => {
-    if (!activeAccountId || !selectedFolderId) return;
+    if (!hydrated || !activeAccountId || !selectedFolderId) return;
 
     // AbortController to cancel pending requests when dependencies change
     const abortController = new AbortController();
@@ -238,7 +242,7 @@ export function MessageList() {
       abortController.abort(); // Cancel pending requests when unmounting or dependencies change
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeAccountId, selectedFolderId, currentPage]);
+  }, [hydrated, activeAccountId, selectedFolderId, currentPage]);
 
   // Scroll detection for infinite scroll
   // PERFORMANCE: Debounced to prevent excessive function calls
