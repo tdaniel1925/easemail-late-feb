@@ -45,7 +45,9 @@ export function AccountSwitcher() {
     }, 5000); // Refresh every 5 seconds
 
     return () => clearInterval(intervalId);
-  }, [setAccounts]);
+    // setAccounts is a stable Zustand action and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
