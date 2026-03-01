@@ -12,11 +12,12 @@ function SettingsPageContent() {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || "general");
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
+  // Extract values to stabilize dependencies (searchParams object is unstable)
+  const error = searchParams.get('error');
+  const success = searchParams.get('success');
+
   useEffect(() => {
     // Handle URL parameters for error/success messages
-    const error = searchParams.get('error');
-    const success = searchParams.get('success');
-
     if (error) {
       const errorMessages: Record<string, string> = {
         'user_not_found': 'User session not found. Please try logging in again.',
@@ -48,7 +49,9 @@ function SettingsPageContent() {
       const timer = setTimeout(() => setNotification(null), 5000);
       return () => clearTimeout(timer);
     }
-  }, [searchParams]);
+    // Use specific values instead of searchParams object to prevent infinite loop
+    // (searchParams object reference changes on every render in Next.js 15+)
+  }, [error, success]);
 
   const tabs = [
     { id: "general", label: "General", icon: SettingsIcon },
