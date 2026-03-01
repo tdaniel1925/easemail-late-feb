@@ -103,191 +103,176 @@ interface MailState {
   getViewedMessage: () => Message | null;
 }
 
+// DISABLED PERSIST MIDDLEWARE - causing infinite loop in production
+// TODO: Re-enable with proper hydration handling
 export const useMailStore = create<MailState>()(
-  subscribeWithSelector(
-    persist(
-      (set, get) => ({
-      // Folder state
-      folders: [],
-      selectedFolderId: null,
-      collapsedFolders: new Set(),
-      isLoadingFolders: false,
-      foldersError: null,
+  subscribeWithSelector((set, get) => ({
+    // Folder state
+    folders: [],
+    selectedFolderId: null,
+    collapsedFolders: new Set(),
+    isLoadingFolders: false,
+    foldersError: null,
 
-      // Message state
-      messages: [],
-      selectedMessageIds: new Set(),
-      viewedMessageId: null,
-      isLoadingMessages: false,
-      messagesError: null,
-      messagePage: 1,
-      messageTotal: 0,
-      hasMoreMessages: false,
+    // Message state
+    messages: [],
+    selectedMessageIds: new Set(),
+    viewedMessageId: null,
+    isLoadingMessages: false,
+    messagesError: null,
+    messagePage: 1,
+    messageTotal: 0,
+    hasMoreMessages: false,
 
-      // Folder actions
-      setFolders: (folders) => set({ folders }),
+    // Folder actions
+    setFolders: (folders) => set({ folders }),
 
-      setSelectedFolder: (folderId) => {
-        console.log('=== STORE: setSelectedFolder called ===');
-        console.log('New folder ID:', folderId);
-        console.log('Previous folder ID:', get().selectedFolderId);
-        set({ selectedFolderId: folderId });
-        console.log('Store updated, new state:', get().selectedFolderId);
-        console.log('=== STORE: setSelectedFolder end ===');
-      },
+    setSelectedFolder: (folderId) => {
+      console.log('=== STORE: setSelectedFolder called ===');
+      console.log('New folder ID:', folderId);
+      console.log('Previous folder ID:', get().selectedFolderId);
+      set({ selectedFolderId: folderId });
+      console.log('Store updated, new state:', get().selectedFolderId);
+      console.log('=== STORE: setSelectedFolder end ===');
+    },
 
-      toggleFolderCollapse: (folderId) =>
-        set((state) => {
-          const newCollapsed = new Set(state.collapsedFolders);
-          if (newCollapsed.has(folderId)) {
-            newCollapsed.delete(folderId);
-          } else {
-            newCollapsed.add(folderId);
-          }
-          return { collapsedFolders: newCollapsed };
-        }),
-
-      setLoadingFolders: (isLoading) => set({ isLoadingFolders: isLoading }),
-
-      setFoldersError: (error) => set({ foldersError: error }),
-
-      updateFolder: (folderId, updates) =>
-        set((state) => ({
-          folders: state.folders.map((folder) =>
-            folder.id === folderId ? { ...folder, ...updates } : folder
-          ),
-        })),
-
-      // Message actions
-      setMessages: (messages) => set({ messages, selectedMessageIds: new Set() }),
-
-      appendMessages: (messages) =>
-        set((state) => ({
-          messages: [...state.messages, ...messages],
-        })),
-
-      toggleMessageSelection: (messageId) =>
-        set((state) => {
-          const newSelection = new Set(state.selectedMessageIds);
-          if (newSelection.has(messageId)) {
-            newSelection.delete(messageId);
-          } else {
-            newSelection.add(messageId);
-          }
-          return { selectedMessageIds: newSelection };
-        }),
-
-      selectMessage: (messageId) =>
-        set({ selectedMessageIds: new Set([messageId]) }),
-
-      selectAllMessages: () =>
-        set((state) => ({
-          selectedMessageIds: new Set(state.messages.map((m) => m.id)),
-        })),
-
-      clearMessageSelection: () => set({ selectedMessageIds: new Set() }),
-
-      setViewedMessage: (messageId) => set({ viewedMessageId: messageId }),
-
-      setLoadingMessages: (isLoading) => set({ isLoadingMessages: isLoading }),
-
-      setMessagesError: (error) => set({ messagesError: error }),
-
-      updateMessage: (messageId, updates) =>
-        set((state) => ({
-          messages: state.messages.map((msg) =>
-            msg.id === messageId ? { ...msg, ...updates } : msg
-          ),
-        })),
-
-      setMessagePage: (page) => set({ messagePage: page }),
-
-      setMessageTotal: (total) => set({ messageTotal: total }),
-
-      setHasMoreMessages: (hasMore) => set({ hasMoreMessages: hasMore }),
-
-      // Folder getters
-      getSelectedFolder: () => {
-        const state = get();
-        return state.folders.find((f) => f.id === state.selectedFolderId) || null;
-      },
-
-      getFolderById: (folderId) => {
-        const state = get();
-        return state.folders.find((f) => f.id === folderId) || null;
-      },
-
-      getChildFolders: (parentGraphId) => {
-        const state = get();
-        return state.folders.filter((f) => f.parent_graph_id === parentGraphId);
-      },
-
-      getRootFolders: () => {
-        const state = get();
-
-        console.log('[mail-store] getRootFolders called, total folders:', state.folders.length);
-
-        // Find the most common parent_graph_id (this is the mailbox root)
-        const parentCounts = new Map<string, number>();
-        state.folders.forEach((f) => {
-          if (f.parent_graph_id) {
-            parentCounts.set(f.parent_graph_id, (parentCounts.get(f.parent_graph_id) || 0) + 1);
-          }
-        });
-
-        console.log('[mail-store] Parent counts:', Array.from(parentCounts.entries()).map(([id, count]) => ({
-          parentId: id.substring(0, 20) + '...',
-          count
-        })));
-
-        // Get the parent with the most children (mailbox root)
-        let mailboxRootId: string | null = null;
-        let maxCount = 0;
-        parentCounts.forEach((count, parentId) => {
-          if (count > maxCount) {
-            maxCount = count;
-            mailboxRootId = parentId;
-          }
-        });
-
-        console.log('[mail-store] Selected mailbox root:', mailboxRootId?.substring(0, 20) + '...', 'with', maxCount, 'folders');
-
-        // Return all folders with that parent (top-level folders)
-        const rootFolders = state.folders.filter((f) => f.parent_graph_id === mailboxRootId);
-        console.log('[mail-store] Returning', rootFolders.length, 'root folders:', rootFolders.map(f => f.display_name));
-        return rootFolders;
-      },
-
-      // Message getters
-      getSelectedMessages: () => {
-        const state = get();
-        return state.messages.filter((m) => state.selectedMessageIds.has(m.id));
-      },
-
-      getMessageById: (messageId) => {
-        const state = get();
-        return state.messages.find((m) => m.id === messageId) || null;
-      },
-
-      getViewedMessage: () => {
-        const state = get();
-        if (!state.viewedMessageId) return null;
-        return state.messages.find((m) => m.id === state.viewedMessageId) || null;
-      },
-    }),
-    {
-      name: 'easemail-mail-storage',
-      partialize: (state) => ({
-        selectedFolderId: state.selectedFolderId,
-        collapsedFolders: Array.from(state.collapsedFolders),
+    toggleFolderCollapse: (folderId) =>
+      set((state) => {
+        const newCollapsed = new Set(state.collapsedFolders);
+        if (newCollapsed.has(folderId)) {
+          newCollapsed.delete(folderId);
+        } else {
+          newCollapsed.add(folderId);
+        }
+        return { collapsedFolders: newCollapsed };
       }),
-      // Handle Set serialization
-      merge: (persistedState: any, currentState) => ({
-        ...currentState,
-        ...persistedState,
-        collapsedFolders: new Set(persistedState?.collapsedFolders || []),
+
+    setLoadingFolders: (isLoading) => set({ isLoadingFolders: isLoading }),
+
+    setFoldersError: (error) => set({ foldersError: error }),
+
+    updateFolder: (folderId, updates) =>
+      set((state) => ({
+        folders: state.folders.map((folder) =>
+          folder.id === folderId ? { ...folder, ...updates } : folder
+        ),
+      })),
+
+    // Message actions
+    setMessages: (messages) => set({ messages, selectedMessageIds: new Set() }),
+
+    appendMessages: (messages) =>
+      set((state) => ({
+        messages: [...state.messages, ...messages],
+      })),
+
+    toggleMessageSelection: (messageId) =>
+      set((state) => {
+        const newSelection = new Set(state.selectedMessageIds);
+        if (newSelection.has(messageId)) {
+          newSelection.delete(messageId);
+        } else {
+          newSelection.add(messageId);
+        }
+        return { selectedMessageIds: newSelection };
       }),
-    }
-    )
-  )
+
+    selectMessage: (messageId) =>
+      set({ selectedMessageIds: new Set([messageId]) }),
+
+    selectAllMessages: () =>
+      set((state) => ({
+        selectedMessageIds: new Set(state.messages.map((m) => m.id)),
+      })),
+
+    clearMessageSelection: () => set({ selectedMessageIds: new Set() }),
+
+    setViewedMessage: (messageId) => set({ viewedMessageId: messageId }),
+
+    setLoadingMessages: (isLoading) => set({ isLoadingMessages: isLoading }),
+
+    setMessagesError: (error) => set({ messagesError: error }),
+
+    updateMessage: (messageId, updates) =>
+      set((state) => ({
+        messages: state.messages.map((msg) =>
+          msg.id === messageId ? { ...msg, ...updates } : msg
+        ),
+      })),
+
+    setMessagePage: (page) => set({ messagePage: page }),
+
+    setMessageTotal: (total) => set({ messageTotal: total }),
+
+    setHasMoreMessages: (hasMore) => set({ hasMoreMessages: hasMore }),
+
+    // Folder getters
+    getSelectedFolder: () => {
+      const state = get();
+      return state.folders.find((f) => f.id === state.selectedFolderId) || null;
+    },
+
+    getFolderById: (folderId) => {
+      const state = get();
+      return state.folders.find((f) => f.id === folderId) || null;
+    },
+
+    getChildFolders: (parentGraphId) => {
+      const state = get();
+      return state.folders.filter((f) => f.parent_graph_id === parentGraphId);
+    },
+
+    getRootFolders: () => {
+      const state = get();
+
+      console.log('[mail-store] getRootFolders called, total folders:', state.folders.length);
+
+      // Find the most common parent_graph_id (this is the mailbox root)
+      const parentCounts = new Map<string, number>();
+      state.folders.forEach((f) => {
+        if (f.parent_graph_id) {
+          parentCounts.set(f.parent_graph_id, (parentCounts.get(f.parent_graph_id) || 0) + 1);
+        }
+      });
+
+      console.log('[mail-store] Parent counts:', Array.from(parentCounts.entries()).map(([id, count]) => ({
+        parentId: id.substring(0, 20) + '...',
+        count
+      })));
+
+      // Get the parent with the most children (mailbox root)
+      let mailboxRootId: string | null = null;
+      let maxCount = 0;
+      parentCounts.forEach((count, parentId) => {
+        if (count > maxCount) {
+          maxCount = count;
+          mailboxRootId = parentId;
+        }
+      });
+
+      console.log('[mail-store] Selected mailbox root:', mailboxRootId?.substring(0, 20) + '...', 'with', maxCount, 'folders');
+
+      // Return all folders with that parent (top-level folders)
+      const rootFolders = state.folders.filter((f) => f.parent_graph_id === mailboxRootId);
+      console.log('[mail-store] Returning', rootFolders.length, 'root folders:', rootFolders.map(f => f.display_name));
+      return rootFolders;
+    },
+
+    // Message getters
+    getSelectedMessages: () => {
+      const state = get();
+      return state.messages.filter((m) => state.selectedMessageIds.has(m.id));
+    },
+
+    getMessageById: (messageId) => {
+      const state = get();
+      return state.messages.find((m) => m.id === messageId) || null;
+    },
+
+    getViewedMessage: () => {
+      const state = get();
+      if (!state.viewedMessageId) return null;
+      return state.messages.find((m) => m.id === state.viewedMessageId) || null;
+    },
+  }))
 );

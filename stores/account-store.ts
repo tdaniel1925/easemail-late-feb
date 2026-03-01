@@ -40,59 +40,51 @@ interface AccountState {
   getAccountById: (accountId: string) => Account | null;
 }
 
-export const useAccountStore = create<AccountState>()(
-  persist(
-    (set, get) => ({
-      accounts: [],
-      activeAccountId: null,
-      isLoading: false,
-      error: null,
+// DISABLED PERSIST MIDDLEWARE - causing infinite loop in production
+// TODO: Re-enable with proper hydration handling
+export const useAccountStore = create<AccountState>()((set, get) => ({
+  accounts: [],
+  activeAccountId: null,
+  isLoading: false,
+  error: null,
 
-      setAccounts: (accounts) => set({ accounts }),
+  setAccounts: (accounts) => set({ accounts }),
 
-      setActiveAccount: (accountId) => set({ activeAccountId: accountId }),
+  setActiveAccount: (accountId) => set({ activeAccountId: accountId }),
 
-      addAccount: (account) =>
-        set((state) => ({
-          accounts: [...state.accounts, account],
-          // Set as active if it's the first account
-          activeAccountId: state.accounts.length === 0 ? account.id : state.activeAccountId,
-        })),
+  addAccount: (account) =>
+    set((state) => ({
+      accounts: [...state.accounts, account],
+      // Set as active if it's the first account
+      activeAccountId: state.accounts.length === 0 ? account.id : state.activeAccountId,
+    })),
 
-      updateAccount: (accountId, updates) =>
-        set((state) => ({
-          accounts: state.accounts.map((acc) =>
-            acc.id === accountId ? { ...acc, ...updates } : acc
-          ),
-        })),
+  updateAccount: (accountId, updates) =>
+    set((state) => ({
+      accounts: state.accounts.map((acc) =>
+        acc.id === accountId ? { ...acc, ...updates } : acc
+      ),
+    })),
 
-      removeAccount: (accountId) =>
-        set((state) => ({
-          accounts: state.accounts.filter((acc) => acc.id !== accountId),
-          // Clear active account if it's the one being removed
-          activeAccountId:
-            state.activeAccountId === accountId ? null : state.activeAccountId,
-        })),
+  removeAccount: (accountId) =>
+    set((state) => ({
+      accounts: state.accounts.filter((acc) => acc.id !== accountId),
+      // Clear active account if it's the one being removed
+      activeAccountId:
+        state.activeAccountId === accountId ? null : state.activeAccountId,
+    })),
 
-      setLoading: (isLoading) => set({ isLoading }),
+  setLoading: (isLoading) => set({ isLoading }),
 
-      setError: (error) => set({ error }),
+  setError: (error) => set({ error }),
 
-      getActiveAccount: () => {
-        const state = get();
-        return state.accounts.find((acc) => acc.id === state.activeAccountId) || null;
-      },
+  getActiveAccount: () => {
+    const state = get();
+    return state.accounts.find((acc) => acc.id === state.activeAccountId) || null;
+  },
 
-      getAccountById: (accountId) => {
-        const state = get();
-        return state.accounts.find((acc) => acc.id === accountId) || null;
-      },
-    }),
-    {
-      name: 'easemail-account-storage',
-      partialize: (state) => ({
-        activeAccountId: state.activeAccountId,
-      }),
-    }
-  )
-);
+  getAccountById: (accountId) => {
+    const state = get();
+    return state.accounts.find((acc) => acc.id === accountId) || null;
+  },
+}));
