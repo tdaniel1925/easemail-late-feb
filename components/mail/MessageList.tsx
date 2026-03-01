@@ -10,8 +10,6 @@ import { MessageListToolbar } from "./MessageListToolbar";
 import { toast } from "@/lib/toast";
 
 export function MessageList() {
-  console.log('[MessageList] Component rendering...');
-
   // PERFORMANCE: Use shallow comparison to prevent unnecessary re-renders
   // Only re-render when these specific values actually change
   const {
@@ -32,8 +30,6 @@ export function MessageList() {
     }),
     shallow
   );
-
-  console.log('[MessageList] Current selectedFolderId from store:', selectedFolderId);
 
   const setMessages = useMailStore((state) => state.setMessages);
   const appendMessages = useMailStore((state) => state.appendMessages);
@@ -64,11 +60,8 @@ export function MessageList() {
 
   const fetchMessages = useCallback(async () => {
     if (!activeAccountId || !selectedFolderId) {
-      console.log('[MessageList] Skipping fetch - missing accountId or folderId', { activeAccountId, selectedFolderId });
       return;
     }
-
-    console.log('[MessageList] Fetching messages for folder:', selectedFolderId);
 
     // Cancel any pending fetch
     if (fetchAbortControllerRef.current) {
@@ -102,7 +95,6 @@ export function MessageList() {
       }
 
       const data = await response.json();
-      console.log('[MessageList] Fetched', data.messages?.length || 0, 'messages');
       setMessages(data.messages || []);
 
       // Check if there are more messages
@@ -169,18 +161,9 @@ export function MessageList() {
   // Fetch messages when account or folder changes
   // DO NOT include fetchMessages in dependencies - it causes issues with re-renders
   useEffect(() => {
-    console.log('=== MESSAGE LIST EFFECT TRIGGERED ===');
-    console.log('activeAccountId:', activeAccountId);
-    console.log('selectedFolderId:', selectedFolderId);
-    console.log('Will fetch:', !!(activeAccountId && selectedFolderId));
-
     if (activeAccountId && selectedFolderId) {
-      console.log('Calling fetchMessages now...');
       fetchMessages();
-    } else {
-      console.log('Skipping fetch - missing accountId or folderId');
     }
-    console.log('=== MESSAGE LIST EFFECT END ===');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAccountId, selectedFolderId]);
 
