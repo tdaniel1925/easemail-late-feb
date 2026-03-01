@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useMailStore, type Folder as FolderType } from "@/stores/mail-store";
 import { useAccountStore } from "@/stores/account-store";
+import { useHydrated } from "@/hooks/useHydrated";
 
 interface FolderTreeProps {
   accountId?: string;
@@ -22,6 +23,7 @@ interface FolderTreeProps {
 
 export function FolderTree({ accountId }: FolderTreeProps) {
   const router = useRouter();
+  const hydrated = useHydrated();
 
   const {
     folders,
@@ -47,17 +49,18 @@ export function FolderTree({ accountId }: FolderTreeProps) {
   // Ref to track the current fetch AbortController
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
 
-  // Fetch folders when account changes
+  // Fetch folders when account changes - only after hydration
   useEffect(() => {
+    if (!hydrated) return;
     if (currentAccountId) {
       fetchFolders(currentAccountId);
     }
-  }, [currentAccountId]);
+  }, [hydrated, currentAccountId]);
 
   // Auto-refresh folder counts every 5 seconds for real-time updates
   // Uses AbortController to prevent race conditions
   useEffect(() => {
-    if (!currentAccountId) return;
+    if (!hydrated || !currentAccountId) return;
 
     const abortController = new AbortController();
 
@@ -89,7 +92,7 @@ export function FolderTree({ accountId }: FolderTreeProps) {
     };
     // setFolders is a stable Zustand action and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAccountId]);
+  }, [hydrated, currentAccountId]);
 
   const fetchFolders = async (accId: string) => {
     // Cancel any pending fetch

@@ -3,10 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { Plus, ChevronDown, AlertCircle } from "lucide-react";
 import { useAccountStore, type Account } from "@/stores/account-store";
+import { useHydrated } from "@/hooks/useHydrated";
 
 export function AccountSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const hydrated = useHydrated();
 
   const {
     accounts,
@@ -19,13 +21,16 @@ export function AccountSwitcher() {
     setError,
   } = useAccountStore();
 
-  // Fetch accounts on mount
+  // Fetch accounts on mount - only after hydration
   useEffect(() => {
+    if (!hydrated) return;
     fetchAccounts();
-  }, []);
+  }, [hydrated]);
 
   // Auto-refresh accounts every 5 seconds for real-time unread counts
   useEffect(() => {
+    if (!hydrated) return;
+
     const intervalId = setInterval(() => {
       // Silent refresh - don't show loading state
       const silentFetch = async () => {
@@ -47,7 +52,7 @@ export function AccountSwitcher() {
     return () => clearInterval(intervalId);
     // setAccounts is a stable Zustand action and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hydrated]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
