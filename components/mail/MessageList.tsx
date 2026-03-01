@@ -114,7 +114,9 @@ export function MessageList() {
         setLoadingMessages(false);
       }
     }
-  }, [activeAccountId, selectedFolderId, setMessages, setLoadingMessages, setMessagesError]);
+    // Zustand actions (setMessages, setLoadingMessages, setMessagesError) are stable and don't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, selectedFolderId]);
 
   const loadMoreMessages = useCallback(async () => {
     if (!activeAccountId || isLoadingMore || !hasMore) return;
@@ -156,7 +158,9 @@ export function MessageList() {
     } finally {
       setIsLoadingMore(false);
     }
-  }, [activeAccountId, currentPage, hasMore, isLoadingMore, selectedFolderId, appendMessages]);
+    // appendMessages is a stable Zustand action and doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, currentPage, hasMore, isLoadingMore, selectedFolderId]);
 
   // Fetch messages when account or folder changes
   // DO NOT include fetchMessages in dependencies - it causes issues with re-renders
@@ -233,7 +237,8 @@ export function MessageList() {
       clearTimeout(timeoutId);
       abortController.abort(); // Cancel pending requests when unmounting or dependencies change
     };
-  }, [activeAccountId, selectedFolderId, currentPage, setMessages]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, selectedFolderId, currentPage]);
 
   // Scroll detection for infinite scroll
   // PERFORMANCE: Debounced to prevent excessive function calls
